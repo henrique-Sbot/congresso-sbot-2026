@@ -6,7 +6,7 @@ import plotly.express as px
 import google.generativeai as genai
 
 # ----------------------------------------------------
-# CONFIGURAÇÃO DE PÁGINA E TEMA VISUAL SBOT
+# CONFIGURAÇÃO DE PÁGINA E DESIGN ESTILIZADO (CARDS)
 # ----------------------------------------------------
 st.set_page_config(
     page_title="Dashboard SBOT 2026",
@@ -14,60 +14,86 @@ st.set_page_config(
     layout="wide"
 )
 
-# Cores Oficiais da Marca SBOT
+# Cores Oficiais SBOT
 VERDE_SBOT = "#046A38"  # Pantone 562C
 CINZA_SBOT = "#333F48"  # Pantone 432
 
+# Estilização CSS personalizada para dar visual moderno de Cards
 st.markdown(f"""
     <style>
-        /* Tipografia e Títulos com a cor oficial */
-        h1, h2, h3, h4 {{ color: {VERDE_SBOT} !important; font-family: 'Gothan', sans-serif; }}
-        .stMetricValue {{ color: {VERDE_SBOT} !important; font-weight: bold; }}
-        
-        /* Botão estilizado */
-        .stButton>button {{
-            background-color: {VERDE_SBOT} !important;
-            color: white !important;
-            border-radius: 6px;
-            border: none;
+        /* Títulos */
+        h1, h2, h3, h4 {{ 
+            color: {VERDE_SBOT} !important; 
+            font-family: 'Helvetica Neue', sans-serif;
+            font-weight: 700;
         }}
-        /* Fundo da Sidebar */
+        
+        /* Container/Cards customizados */
+        div[data-testid="stMetric"] {{
+            background-color: #FFFFFF;
+            border: 1px solid #E0E0E0;
+            border-left: 5px solid {VERDE_SBOT};
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.05);
+        }}
+        
+        /* Estilo dos Rótulos dos Cards */
+        div[data-testid="stMetricLabel"] {{
+            color: {CINZA_SBOT} !important;
+            font-size: 14px !important;
+            font-weight: 600;
+        }}
+        
+        /* Estilo dos Números dos Cards */
+        div[data-testid="stMetricValue"] {{
+            color: {VERDE_SBOT} !important;
+            font-size: 28px !important;
+            font-weight: bold;
+        }}
+
+        /* Sidebar */
         section[data-testid="stSidebar"] {{
-            background-color: #F4F6F8;
+            background-color: #F8F9FA;
+            border-right: 1px solid #EAEAEA;
         }}
     </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# CONFIGURAÇÃO DE SIDEBAR
+# SIDEBAR
 # ----------------------------------------------------
 st.sidebar.image("https://sbot.org.br/wp-content/uploads/2021/04/logo-sbot.png", width=180)
-st.sidebar.title("Configurações")
+st.sidebar.title("Painel de Controle")
 GEMINI_API_KEY = st.sidebar.text_input("Google AI Studio API Key", type="password")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # ----------------------------------------------------
-# FUNÇÃO DE CARREGAMENTO SEGURO VIA REQUESTS + IO
+# LEITURA ROBUSTA DOS DADOS
 # ----------------------------------------------------
-@st.cache_data(ttl=300)
-def carregar_tabela(url):
-    """Carrega as tabelas HTML de forma segura convertendo o texto recebido."""
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+@st.cache_data(ttl=180)
+def carregar_dados_icongresso(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     try:
-        response = requests.get(url, headers=headers, timeout=15)
-        if response.status_code == 200:
-            # io.StringIO garante que o pandas entenda como HTML e não como caminho de arquivo
-            html_io = io.StringIO(response.text)
-            tables = pd.read_html(html_io)
-            if tables:
-                return tables[0]
+        req = requests.get(url, headers=headers, timeout=20)
+        if req.status_code == 200:
+            # Tenta extrair todas as tabelas contidas na página
+            tabelas = pd.read_html(io.StringIO(req.text))
+            for df in tabelas:
+                # Retorna a primeira tabela que tiver mais de 1 linha/coluna relevante
+                if df.shape[0] > 0 and df.shape[1] > 1:
+                    # Limpa nomes das colunas tirando espaços extras
+                    df.columns = [str(col).strip().lower() for col in df.columns]
+                    return df
     except Exception as e:
-        st.warning(f"Não foi possível ler os dados da fonte no momento: {e}")
+        st.error(f"Erro ao conectar com {url}: {e}")
     return None
 
-# Endereços oficiais das bases
+# URLs Oficiais
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
 URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
@@ -76,7 +102,7 @@ URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/
 # CABEÇALHO DO DASHBOARD
 # ----------------------------------------------------
 st.title("📊 Dashboard Executivo - Congresso SBOT 2026")
-st.caption("Painel integrado em tempo real às bases do iCongresso")
+st.caption("Acompanhamento em tempo real das inscrições e palestrantes")
 st.divider()
 
 # ====================================================
@@ -84,37 +110,40 @@ st.divider()
 # ====================================================
 st.header("1. Inscrições Gerais (Congresso)")
 
-df_atividade = carregar_tabela(URL_ATIVIDADE)
+df_atividade = carregar_dados_icongresso(URL_ATIVIDADE)
 
 if df_atividade is not None and not df_atividade.empty:
-    col_nome = [c for c in df_atividade.columns if 'Nome' in str(c) or 'Atividade' in str(c) or 'descri' in str(c).lower()][0]
+    col_nome = [c for c in df_atividade.columns if any(k in c for k in ['nome', 'atividade', 'descri'])][0]
     
-    # FILTRO ESTREITO: APENAS a linha referente à Inscrição Principal do Congresso nos Cards
+    # Exclui Ultrassonografia e Ondas de Choque dos Cards Principais
     df_congresso_only = df_atividade[
         df_atividade[col_nome].astype(str).str.contains("CONGRESSO", case=False, na=False) &
         ~df_atividade[col_nome].astype(str).str.contains("ULTRASSONOGRAFIA|ONDAS DE CHOQUE|CUSME", case=False, na=False)
     ]
 
+    def extrair_valor(df, nome_col):
+        cols = [c for c in df.columns if nome_col in c]
+        if cols and not df.empty:
+            val = pd.to_numeric(df[cols[0]], errors='coerce').fillna(0).sum()
+            return int(val)
+        return 0
+
     if not df_congresso_only.empty:
-        qtd_pagas = df_congresso_only['qtd_inscrito'].values[0] if 'qtd_inscrito' in df_congresso_only.columns else 0
-        qtd_cortesia = df_congresso_only['qtd_cortesia'].values[0] if 'qtd_cortesia' in df_congresso_only.columns else 0
-        qtd_voucher = df_congresso_only['qtde_voucher_cortesia'].values[0] if 'qtde_voucher_cortesia' in df_congresso_only.columns else 0
-        total_geral_congresso = df_congresso_only['qtd_total'].values[0] if 'qtd_total' in df_congresso_only.columns else 0
+        qtd_pagas = extrair_valor(df_congresso_only, 'qtd_inscrito')
+        qtd_cortesia = extrair_valor(df_congresso_only, 'qtd_cortesia')
+        qtd_voucher = extrair_valor(df_congresso_only, 'voucher')
+        total_geral_congresso = extrair_valor(df_congresso_only, 'qtd_total')
     else:
         qtd_pagas, qtd_cortesia, qtd_voucher, total_geral_congresso = 0, 0, 0, 0
 
-    # Exibição dos CARDS exclusivos do Congresso
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Inscrições Pagas", f"{qtd_pagas}")
-    c2.metric("Inscrições Cortesia", f"{qtd_cortesia}")
-    c3.metric("Voucher Cortesia", f"{qtd_voucher}")
-    c4.metric("Total Geral (Congresso)", f"{total_geral_congresso}")
+    c1.metric("Inscrições Pagas", f"{qtd_pagas:,}".replace(",", "."))
+    c2.metric("Inscrições Cortesia", f"{qtd_cortesia:,}".replace(",", "."))
+    c3.metric("Voucher Cortesia", f"{qtd_voucher:,}".replace(",", "."))
+    c4.metric("Total Geral (Congresso)", f"{total_geral_congresso:,}".replace(",", "."))
 
-    # Tabela Completa (incluindo Cursos de Ultrassonografia e Ondas de Choque)
-    with st.expander("📄 Ver detalhamento geral por atividades (Inclui Cursos de Ultrassonografia e Ondas de Choque)"):
+    with st.expander("📄 Ver detalhamento geral por atividades (Inclui Ultrassonografia e Ondas de Choque)"):
         st.dataframe(df_atividade, use_container_width=True)
-else:
-    st.info("Aguardando carregamento da base de Atividades...")
 
 st.divider()
 
@@ -123,43 +152,51 @@ st.divider()
 # ====================================================
 st.header("2. Palestrantes")
 
-df_palestrantes = carregar_tabela(URL_PALESTRANTES)
+df_palestrantes = carregar_dados_icongresso(URL_PALESTRANTES)
 
 if df_palestrantes is not None and not df_palestrantes.empty:
-    tot_palestrantes = df_palestrantes['qtd_total'].sum() if 'qtd_total' in df_palestrantes.columns else 0
-    aceito = df_palestrantes['qtd_sim'].sum() if 'qtd_sim' in df_palestrantes.columns else 0
-    pendente = df_palestrantes['qtd_pendente'].sum() if 'qtd_pendente' in df_palestrantes.columns else 0
-    rejeitado = df_palestrantes['qtd_nao'].sum() if 'qtd_nao' in df_palestrantes.columns else 0
+    # Função auxiliar para somar colunas de forma segura
+    def somar_col(df, termos):
+        cols = [c for c in df.columns if any(t in c for t in termos)]
+        if cols:
+            return int(pd.to_numeric(df[cols[0]], errors='coerce').fillna(0).sum())
+        return 0
 
-    # 1) Cards com Nomenclaturas Específicas
+    tot_palestrantes = somar_col(df_palestrantes, ['total', 'qtd_total'])
+    aceito = somar_col(df_palestrantes, ['sim', 'aceito', 'qtd_sim'])
+    pendente = somar_col(df_palestrantes, ['pendente', 'qtd_pendente'])
+    rejeitado = somar_col(df_palestrantes, ['nao', 'não', 'rejeitado', 'qtd_nao'])
+
     p1, p2, p3, p4 = st.columns(4)
-    p1.metric("Total de Palestrantes", f"{tot_palestrantes}")
-    p2.metric("Convite Aceito", f"{aceito}")
-    p3.metric("Convite Pendente", f"{pendente}")
-    p4.metric("Convite Rejeitado", f"{rejeitado}")
+    p1.metric("Total de Palestrantes", f"{tot_palestrantes:,}".replace(",", "."))
+    p2.metric("Convite Aceito", f"{aceito:,}".replace(",", "."))
+    p3.metric("Convite Pendente", f"{pendente:,}".replace(",", "."))
+    p4.metric("Convite Rejeitado", f"{rejeitado:,}".replace(",", "."))
 
     st.subheader("⚠️ Palestrantes que Aceitaram mas NÃO se Inscreveram")
     
-    # 2) Gráfico/Tabela de Palestrantes que aceitaram e não fizeram inscrição
-    if 'qtd_sim' in df_palestrantes.columns and 'qtd_inscrito' in df_palestrantes.columns:
-        df_aceito_sem_inscricao = df_palestrantes.copy()
-        df_aceito_sem_inscricao['pendentes_inscricao'] = df_aceito_sem_inscricao['qtd_sim'] - df_aceito_sem_inscricao['qtd_inscrito']
+    col_sim = [c for c in df_palestrantes.columns if 'sim' in c or 'aceito' in c]
+    col_insc = [c for c in df_palestrantes.columns if 'inscrito' in c]
+
+    if col_sim and col_insc:
+        df_p = df_palestrantes.copy()
+        df_p['sim_num'] = pd.to_numeric(df_p[col_sim[0]], errors='coerce').fillna(0)
+        df_p['insc_num'] = pd.to_numeric(df_p[col_insc[0]], errors='coerce').fillna(0)
+        df_p['pendentes_inscricao'] = df_p['sim_num'] - df_p['insc_num']
         
-        col_categoria = df_palestrantes.columns[0]
+        col_cat = df_p.columns[0]
         fig_palestrantes = px.bar(
-            df_aceito_sem_inscricao,
-            x=col_categoria,
+            df_p,
+            x=col_cat,
             y='pendentes_inscricao',
-            labels={col_categoria: 'Categoria', 'pendentes_inscricao': 'Aceitaram s/ Inscrição'},
+            labels={col_cat: 'Categoria', 'pendentes_inscricao': 'Falta Inscrever'},
             color_discrete_sequence=[VERDE_SBOT],
-            title="Quantidade de Palestrantes com Convite Aceito Pendentes de Inscrição"
+            title="Aceitaram Convite mas ainda não completaram a Inscrição"
         )
         st.plotly_chart(fig_palestrantes, use_container_width=True)
     
     with st.expander("📄 Ver tabela completa de status dos palestrantes"):
         st.dataframe(df_palestrantes, use_container_width=True)
-else:
-    st.info("Aguardando carregamento da base de Palestrantes...")
 
 st.divider()
 
@@ -168,7 +205,7 @@ st.divider()
 # ====================================================
 st.header("3. Inscrições Patrocinadas")
 
-df_patrocinadas = carregar_tabela(URL_PATROCINADOS)
+df_patrocinadas = carregar_dados_icongresso(URL_PATROCINADOS)
 
 GRUPOS_EXCLUIR = [
     "CONVÊNIO - APROVADOS TEOT 2026",
@@ -183,24 +220,28 @@ GRUPOS_EXCLUIR = [
 ]
 
 if df_patrocinadas is not None and not df_patrocinadas.empty:
-    col_convenio = [c for c in df_patrocinadas.columns if 'descri' in str(c).lower() or 'convenio' in str(c).lower() or 'grupo' in str(c).lower()][0]
+    col_conv = df_patrocinadas.columns[0]
     
-    # Aplicação estrita do filtro de exclusão
-    df_patroc_filtrado = df_patrocinadas[~df_patrocinadas[col_convenio].astype(str).isin(GRUPOS_EXCLUIR)]
+    # Aplica o filtro de exclusão dos convênios/descontos
+    df_patroc_filtrado = df_patrocinadas[~df_patrocinadas[col_conv].astype(str).str.strip().isin(GRUPOS_EXCLUIR)]
 
-    qtd_vendidas = df_patroc_filtrado['qtd_total'].sum() if 'qtd_total' in df_patroc_filtrado.columns else 0
-    qtd_efetivadas = df_patroc_filtrado['qtd_inscrito'].sum() if 'qtd_inscrito' in df_patroc_filtrado.columns else 0
-    qtd_nao_efetivadas = qtd_vendidas - qtd_efetivadas
+    col_tot = [c for c in df_patroc_filtrado.columns if 'total' in c or 'qtd_total' in c]
+    col_ins = [c for c in df_patroc_filtrado.columns if 'inscrito' in c or 'qtd_inscrito' in c]
+
+    if col_tot and col_ins:
+        qtd_vendidas = int(pd.to_numeric(df_patroc_filtrado[col_tot[0]], errors='coerce').fillna(0).sum())
+        qtd_efetivadas = int(pd.to_numeric(df_patroc_filtrado[col_ins[0]], errors='coerce').fillna(0).sum())
+        qtd_nao_efetivadas = qtd_vendidas - qtd_efetivadas
+    else:
+        qtd_vendidas, qtd_efetivadas, qtd_nao_efetivadas = 0, 0, 0
 
     m1, m2, m3 = st.columns(3)
-    m1.metric("Quantidade Vendida", f"{qtd_vendidas}")
-    m2.metric("Inscrições Efetivadas", f"{qtd_efetivadas}")
-    m3.metric("Inscrições NÃO Efetivadas", f"{qtd_nao_efetivadas}")
+    m1.metric("Quantidade Vendida", f"{qtd_vendidas:,}".replace(",", "."))
+    m2.metric("Inscrições Efetivadas", f"{qtd_efetivadas:,}".replace(",", "."))
+    m3.metric("Inscrições NÃO Efetivadas", f"{qtd_nao_efetivadas:,}".replace(",", "."))
 
-    with st.expander("📄 Ver detalhamento das inscrições patrocinadas (Filtros aplicados)"):
+    with st.expander("📄 Ver detalhamento das inscrições patrocinadas"):
         st.dataframe(df_patroc_filtrado, use_container_width=True)
-else:
-    st.info("Aguardando carregamento da base de Patrocinados...")
 
 # ====================================================
 # AGENTE IA - GOOGLE AI STUDIO (GEMINI)
@@ -210,8 +251,8 @@ st.subheader("🤖 Diagnóstico de Inteligência Executiva")
 
 if GEMINI_API_KEY:
     if st.button("✨ Gerar Análise Estratégica"):
-        with st.spinner("Analisando métricas..."):
+        with st.spinner("Analisando métricas do iCongresso..."):
             model = genai.GenerativeModel('gemini-1.5-flash')
-            prompt = "Análise rápida de status das métricas carregadas do congresso SBOT."
+            prompt = "Gere um resumo executivo com 3 ações recomendadas com base nas inscrições do evento SBOT."
             response = model.generate_content(prompt)
             st.markdown(response.text)
