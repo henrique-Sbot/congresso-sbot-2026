@@ -35,7 +35,7 @@ st.markdown(f"""
             background-color: #F4F6F8;
         }}
     </style>
-""", unsafe_unsafe_html=True if hasattr(st, 'unsafe_html') else True)
+""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
 # CONFIGURAÇÃO DE SIDEBAR
