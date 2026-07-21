@@ -1,0 +1,8 @@
+streamlit
+pandas
+requests
+beautifulsoup4
+google-generativeai
+plotly
+lxml
+html5lib
