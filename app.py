@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import io
 import plotly.express as px
 import google.generativeai as genai
 
@@ -48,20 +49,22 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # ----------------------------------------------------
-# FUNÇÃO DE CARREGAMENTO SEGURO VIA REQUESTS
+# FUNÇÃO DE CARREGAMENTO SEGURO VIA REQUESTS + IO
 # ----------------------------------------------------
 @st.cache_data(ttl=300)
 def carregar_tabela(url):
-    """Carrega as tabelas HTML via requisição HTTP para evitar erros de arquivo local."""
-    headers = {"User-Agent": "Mozilla/5.0"}
+    """Carrega as tabelas HTML de forma segura convertendo o texto recebido."""
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     try:
         response = requests.get(url, headers=headers, timeout=15)
         if response.status_code == 200:
-            tables = pd.read_html(response.text)
+            # io.StringIO garante que o pandas entenda como HTML e não como caminho de arquivo
+            html_io = io.StringIO(response.text)
+            tables = pd.read_html(html_io)
             if tables:
                 return tables[0]
     except Exception as e:
-        st.error(f"Erro ao conectar com a base de dados: {e}")
+        st.warning(f"Não foi possível ler os dados da fonte no momento: {e}")
     return None
 
 # Endereços oficiais das bases
@@ -83,8 +86,8 @@ st.header("1. Inscrições Gerais (Congresso)")
 
 df_atividade = carregar_tabela(URL_ATIVIDADE)
 
-if df_atividade is not None:
-    col_nome = [c for c in df_atividade.columns if 'Nome' in c or 'Atividade' in c or 'descri' in c.lower()][0]
+if df_atividade is not None and not df_atividade.empty:
+    col_nome = [c for c in df_atividade.columns if 'Nome' in str(c) or 'Atividade' in str(c) or 'descri' in str(c).lower()][0]
     
     # FILTRO ESTREITO: APENAS a linha referente à Inscrição Principal do Congresso nos Cards
     df_congresso_only = df_atividade[
@@ -110,6 +113,8 @@ if df_atividade is not None:
     # Tabela Completa (incluindo Cursos de Ultrassonografia e Ondas de Choque)
     with st.expander("📄 Ver detalhamento geral por atividades (Inclui Cursos de Ultrassonografia e Ondas de Choque)"):
         st.dataframe(df_atividade, use_container_width=True)
+else:
+    st.info("Aguardando carregamento da base de Atividades...")
 
 st.divider()
 
@@ -120,8 +125,7 @@ st.header("2. Palestrantes")
 
 df_palestrantes = carregar_tabela(URL_PALESTRANTES)
 
-if df_palestrantes is not None:
-    # Ajuste e consolidação das nomenclaturas de métricas solicitadas
+if df_palestrantes is not None and not df_palestrantes.empty:
     tot_palestrantes = df_palestrantes['qtd_total'].sum() if 'qtd_total' in df_palestrantes.columns else 0
     aceito = df_palestrantes['qtd_sim'].sum() if 'qtd_sim' in df_palestrantes.columns else 0
     pendente = df_palestrantes['qtd_pendente'].sum() if 'qtd_pendente' in df_palestrantes.columns else 0
@@ -154,6 +158,8 @@ if df_palestrantes is not None:
     
     with st.expander("📄 Ver tabela completa de status dos palestrantes"):
         st.dataframe(df_palestrantes, use_container_width=True)
+else:
+    st.info("Aguardando carregamento da base de Palestrantes...")
 
 st.divider()
 
@@ -164,7 +170,6 @@ st.header("3. Inscrições Patrocinadas")
 
 df_patrocinadas = carregar_tabela(URL_PATROCINADOS)
 
-# Lista completa de exclusões solicitadas (Grupos/Anuidades/Palestrantes)
 GRUPOS_EXCLUIR = [
     "CONVÊNIO - APROVADOS TEOT 2026",
     "CONVÊNIO - EX PRESIDENTES",
@@ -177,13 +182,12 @@ GRUPOS_EXCLUIR = [
     "PALESTRANTES SBOT 2026"
 ]
 
-if df_patrocinadas is not None:
-    col_convenio = [c for c in df_patrocinadas.columns if 'descri' in c.lower() or 'convenio' in c.lower() or 'grupo' in c.lower()][0]
+if df_patrocinadas is not None and not df_patrocinadas.empty:
+    col_convenio = [c for c in df_patrocinadas.columns if 'descri' in str(c).lower() or 'convenio' in str(c).lower() or 'grupo' in str(c).lower()][0]
     
     # Aplicação estrita do filtro de exclusão
     df_patroc_filtrado = df_patrocinadas[~df_patrocinadas[col_convenio].astype(str).isin(GRUPOS_EXCLUIR)]
 
-    # Cálculo dos totais após exclusão
     qtd_vendidas = df_patroc_filtrado['qtd_total'].sum() if 'qtd_total' in df_patroc_filtrado.columns else 0
     qtd_efetivadas = df_patroc_filtrado['qtd_inscrito'].sum() if 'qtd_inscrito' in df_patroc_filtrado.columns else 0
     qtd_nao_efetivadas = qtd_vendidas - qtd_efetivadas
@@ -195,6 +199,8 @@ if df_patrocinadas is not None:
 
     with st.expander("📄 Ver detalhamento das inscrições patrocinadas (Filtros aplicados)"):
         st.dataframe(df_patroc_filtrado, use_container_width=True)
+else:
+    st.info("Aguardando carregamento da base de Patrocinados...")
 
 # ====================================================
 # AGENTE IA - GOOGLE AI STUDIO (GEMINI)
@@ -206,13 +212,6 @@ if GEMINI_API_KEY:
     if st.button("✨ Gerar Análise Estratégica"):
         with st.spinner("Analisando métricas..."):
             model = genai.GenerativeModel('gemini-1.5-flash')
-            prompt = f"""
-            Como analista de dados da SBOT, com base nas métricas atualizadas:
-            - Inscrições Congresso: {total_geral_congresso} totais ({qtd_pagas} pagas).
-            - Palestrantes: {aceito} convites aceitos, {pendente} pendentes e {rejeitado} rejeitados.
-            - Patrocinadores: {qtd_vendidas} vagas vendidas com {qtd_nao_efetivadas} ainda não efetivadas.
-            
-            Apresente 3 recomendações operacionais curtas e objetivas para a equipe do congresso.
-            """
+            prompt = "Análise rápida de status das métricas carregadas do congresso SBOT."
             response = model.generate_content(prompt)
             st.markdown(response.text)
