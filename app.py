@@ -95,9 +95,9 @@ st.markdown("""
             margin-bottom: 20px;
             min-height: 125px;
         }
-        .info-icon { font-size: 30px; margin-bottom: 6px; }
-        .info-title { font-size: 17px; font-weight: 700; color: #0F172A; margin-bottom: 6px; }
-        .info-desc { font-size: 15px; color: #64748B; line-height: 1.4; }
+        .info-icon { font-size: 24px; margin-bottom: 6px; }
+        .info-title { font-size: 16px; font-weight: 700; color: #0F172A; margin-bottom: 6px; }
+        .info-desc { font-size: 14px; color: #64748B; line-height: 1.4; }
 
         .progress-bar-bg {
             background-color: #E2E8F0;
@@ -207,7 +207,7 @@ def extrair_dados_geograficos(df, nome_valor):
     return df_res
 
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
-URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
+URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/analitico/idioma_ext/1/cc_ext/190"
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_MEMBROS_ESTADO = "https://icase.sbot.itarget.com.br/relatorio/relatorios/index/relid/1979/type/quantitativo/idioma_ext/1/cc_ext/1"
 URL_INSCRITOS_ESTADO = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1968/type/quantitativo/idioma_ext/1/cc_ext/190"
@@ -290,19 +290,47 @@ df_palestrantes = carregar_dados_icongresso(URL_PALESTRANTES)
 tot_palestrantes, aceito, pendente, rejeitado = 0, 0, 0, 0
 
 if df_palestrantes is not None and not df_palestrantes.empty:
-    col_status = [c for c in df_palestrantes.columns if 'status' in c or 'convite' in c][0]
-    col_qtd = [c for c in df_palestrantes.columns if 'quantidade' in c or 'qtd' in c][0]
+    # Identificar colunas relativas ao status do convite e status da palestra
+    col_status_convite = None
+    col_status_palestra = None
+    
+    for c in df_palestrantes.columns:
+        c_str = str(c).lower()
+        if 'palestra' in c_str and 'status' in c_str:
+            col_status_palestra = c
+        elif 'convite' in c_str and 'status' in c_str and col_status_convite is None:
+            col_status_convite = c
+            
+    # Fallback caso os nomes variem
+    if not col_status_convite:
+        cols_status = [c for c in df_palestrantes.columns if 'status' in str(c).lower()]
+        if len(cols_status) > 0:
+            col_status_convite = cols_status[0]
+        if len(cols_status) > 1:
+            col_status_palestra = cols_status[1]
 
-    def pegar_qtd(status_nome):
-        filtro = df_palestrantes[df_palestrantes[col_status].astype(str).str.contains(status_nome, case=False, na=False)]
-        if not filtro.empty:
-            return int(pd.to_numeric(filtro[col_qtd].values[0], errors='coerce'))
-        return 0
+    # Processamento analítico linha a linha
+    for _, row in df_palestrantes.iterrows():
+        val_convite = str(row[col_status_convite]).strip().lower() if col_status_convite else ""
+        val_palestra = str(row[col_status_palestra]).strip().lower() if col_status_palestra else ""
 
-    aceito = pegar_qtd("Aceitou")
-    pendente = pegar_qtd("Convite Enviado") + pegar_qtd("Cadastrado")
-    rejeitado = pegar_qtd("Rejeitado")
-    tot_palestrantes = aceito + pendente + rejeitado
+        # Computar rejeição para o card de rejeitados
+        if 'rejeitado' in val_convite or 'rejeitado' in val_palestra:
+            rejeitado += 1
+
+        # Regra de Exclusão da Soma Total:
+        # Desconsidera da contagem se status do convite = 'rejeitado' OU status do convite da palestra = '-' (ou vazio)
+        if 'rejeitado' in val_convite or val_palestra == '-' or val_palestra == '':
+            continue
+
+        # Incrementa o total de convocações válidas
+        tot_palestrantes += 1
+
+        # Classificação do status
+        if 'aceito' in val_convite or 'aceitou' in val_convite or 'aceito' in val_palestra or 'aceitou' in val_palestra:
+            aceito += 1
+        else:
+            pendente += 1
 
 p1, p2, p3, p4 = st.columns(4)
 
