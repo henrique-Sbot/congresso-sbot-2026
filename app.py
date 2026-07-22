@@ -3,13 +3,14 @@ import pandas as pd
 import requests
 import io
 import plotly.express as px
+import plotly.graph_objects as go
 import google.generativeai as genai
 
 # ----------------------------------------------------
 # CONFIGURAÇÃO DE PÁGINA E DESIGN PREMIUM
 # ----------------------------------------------------
 st.set_page_config(
-    page_title="Dashboard Executivo SBOT 2026",
+    page_title="Congresso SBOT | Porto Alegre 2026",
     page_icon="📊",
     layout="wide"
 )
@@ -53,9 +54,10 @@ st.markdown("""
         }
         .stat-card.orange { border-top-color: #EA580C; }
         .stat-card.green { border-top-color: #10B981; }
+        .stat-card.purple { border-top-color: #8B5CF6; }
         
         .stat-value {
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 800;
             color: #0F172A;
             line-height: 1;
@@ -63,6 +65,7 @@ st.markdown("""
         .stat-value.blue { color: #0284C7; }
         .stat-value.orange { color: #EA580C; }
         .stat-value.green { color: #10B981; }
+        .stat-value.purple { color: #8B5CF6; }
         
         .stat-label {
             font-size: 11px;
@@ -119,13 +122,15 @@ def carregar_dados_icongresso(url):
         st.error(f"Erro na conexão: {e}")
     return None
 
+# URLs do Sistema
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
 URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
-URL_ESTADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1802/type/quantitativo/idioma_ext/1/cc_ext/190"
+URL_MEMBROS_ESTADO = "https://icase.sbot.itarget.com.br/relatorio/relatorios/index/relid/1978/type/quantitativo/idioma_ext/1/cc_ext/1"
+URL_INSCRITOS_ESTADO = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1968/type/quantitativo/idioma_ext/1/cc_ext/190"
 
-st.title("📊 Dashboard Executivo - Congresso SBOT 2026")
-st.caption("Acompanhamento estratégico em tempo real e projeções consolidadas")
+st.title("📊 Congresso SBOT | Porto Alegre 2026")
+st.caption("Acompanhamento estratégico em tempo real, penetração por regional e projeções consolidadas")
 st.divider()
 
 # ====================================================
@@ -225,7 +230,7 @@ if df_palestrantes is not None and not df_palestrantes.empty:
 st.divider()
 
 # ====================================================
-# SESSÃO 3: INSCRIÇÕES PATROCINADAS (SOMA MANUAL REAL)
+# SESSÃO 3: INSCRIÇÕES PATROCINADAS
 # ====================================================
 st.markdown('<div class="section-header">Sessão 3: Inscrições Patrocinadas</div>', unsafe_allow_html=True)
 df_patrocinadas = carregar_dados_icongresso(URL_PATROCINADOS)
@@ -234,7 +239,6 @@ qtd_vagas_convenio, qtd_vagas_confirmadas, qtd_vagas_preencher = 0, 0, 0
 df_patroc_filtrado = pd.DataFrame()
 
 if df_patrocinadas is not None and not df_patrocinadas.empty:
-    # 1. Filtro por palavras-chave institucionais/descontos
     palavras_excluir = [
         "TEOT", "EX PRESIDENTES", "MEMBROS CEC", "REMIDOS", "PALESTRANTES", 
         "SBOTLAB", "ANUANIDADE VIA APP", "DESCONTO APLICADO", "SBOT DESCONTO ANUIDADE"
@@ -247,17 +251,14 @@ if df_patrocinadas is not None and not df_patrocinadas.empty:
     
     df_patroc_filtrado = df_patrocinadas[~mascara_linhas_indesejadas].copy()
     
-    # 2. REMOÇÃO EXPLICITA DA ÚLTIMA LINHA (Linha de Totais da Planilha Original)
     if len(df_patroc_filtrado) > 0:
         df_patroc_filtrado = df_patroc_filtrado.iloc[:-1].copy()
 
-    # 3. Mapeamento das colunas numéricas
     colunas = list(df_patroc_filtrado.columns)
     col_vagas = next((c for c in colunas if any(k in c for k in ['convenio', 'vagas', 'cota'])), colunas[3] if len(colunas) > 3 else None)
     col_conf = next((c for c in colunas if 'confirm' in c), colunas[4] if len(colunas) > 4 else None)
     col_preencher = next((c for c in colunas if any(k in c for k in ['preencher', 'saldo', 'restante'])), colunas[5] if len(colunas) > 5 else None)
 
-    # 4. Cálculo próprio das linhas restantes
     if col_vagas and col_conf and col_preencher:
         qtd_vagas_convenio = int(pd.to_numeric(df_patroc_filtrado[col_vagas], errors='coerce').fillna(0).sum())
         qtd_vagas_confirmadas = int(pd.to_numeric(df_patroc_filtrado[col_conf], errors='coerce').fillna(0).sum())
@@ -267,20 +268,20 @@ m1, m2, m3 = st.columns(3)
 
 with m1:
     st.markdown(f'''
-        <div class="stat-card"><div class="stat-value">{qtd_vagas_convenio:,}</div><div class="stat-label">Qtd. de Vagas (Convênio)</div></div>
-        <div class="info-card"><div class="info-icon">🤝</div><div class="info-title">Total da Cota Comercial</div><div class="info-desc">Volume de vagas vendidas para empresas patrocinadoras.</div></div>
+        <div class="stat-card"><div class="stat-value">{qtd_vagas_convenio:,}</div><div class="stat-label">Qtd. de Vagas (Convênio Vendido)</div></div>
+        <div class="info-card"><div class="info-icon">🤝</div><div class="info-title">Total da Cota Comercial</div><div class="info-desc">Volume total de vagas comercializadas para patrocinadores.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with m2:
     st.markdown(f'''
         <div class="stat-card"><div class="stat-value blue">{qtd_vagas_confirmadas:,}</div><div class="stat-label">Qtd. de Vagas (Confirmadas)</div></div>
-        <div class="info-card"><div class="info-icon">👤</div><div class="info-title">Vouchers Utilizados</div><div class="info-desc">Participantes cadastrados pelas patrocinadoras.</div></div>
+        <div class="info-card"><div class="info-icon">👤</div><div class="info-title">Vouchers Utilizados</div><div class="info-desc">Participantes já cadastrados nos cupons das patrocinadoras.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with m3:
     st.markdown(f'''
         <div class="stat-card orange"><div class="stat-value orange">{qtd_vagas_preencher:,}</div><div class="stat-label">Qtd. de Vagas a Preencher</div></div>
-        <div class="info-card"><div class="info-icon">🔄</div><div class="info-title">Saldo Disponível</div><div class="info-desc">Cotas vendidas pendentes de indicação de nome.</div></div>
+        <div class="info-card"><div class="info-icon">🔄</div><div class="info-title">Saldo Pendente</div><div class="info-desc">Vagas vendidas que ainda aguardam a indicação do congressista.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 if not df_patroc_filtrado.empty:
@@ -290,66 +291,110 @@ if not df_patroc_filtrado.empty:
 st.divider()
 
 # ====================================================
-# SESSÃO 4: DISTRIBUIÇÃO GEOGRÁFICA POR ESTADO (UF)
+# SESSÃO 4: ANÁLISE POR ESTADO (MEMBROS X INSCRITOS)
 # ====================================================
-st.markdown('<div class="section-header">Sessão 4: Distribuição Geográfica (UF)</div>', unsafe_allow_html=True)
-df_estados = carregar_dados_icongresso(URL_ESTADOS)
+st.markdown('<div class="section-header">Sessão 4: Análise por Estado (Regional SBOT x Inscritos)</div>', unsafe_allow_html=True)
 
-if df_estados is not None and not df_estados.empty:
+df_membros = carregar_dados_icongresso(URL_MEMBROS_ESTADO)
+df_inscritos_uf = carregar_dados_icongresso(URL_INSCRITOS_ESTADO)
+
+ESTADOS_DESTAQUE = ["RS", "SC", "PR", "SP", "RJ"]
+
+if df_membros is not None and df_inscritos_uf is not None:
     try:
-        # Identificação inteligente das colunas
-        col_uf = next((c for c in df_estados.columns if any(k in c for k in ['uf', 'estado', 'sigla'])), df_estados.columns[0])
-        col_total = next((c for c in df_estados.columns if any(k in c for k in ['total', 'qtd', 'inscritos'])), df_estados.columns[-1])
+        # Padronização de Colunas
+        col_uf_m = next((c for c in df_membros.columns if any(k in c for k in ['uf', 'estado', 'sigla'])), df_membros.columns[0])
+        col_qtd_m = next((c for c in df_membros.columns if any(k in c for k in ['total', 'qtd', 'quantidade'])), df_membros.columns[-1])
 
-        df_uf_clean = df_estados.copy()
-        df_uf_clean[col_total] = pd.to_numeric(df_uf_clean[col_total], errors='coerce').fillna(0)
+        col_uf_i = next((c for c in df_inscritos_uf.columns if any(k in c for k in ['uf', 'estado', 'sigla'])), df_inscritos_uf.columns[0])
+        col_qtd_i = next((c for c in df_inscritos_uf.columns if any(k in c for k in ['total', 'qtd', 'quantidade'])), df_inscritos_uf.columns[-1])
+
+        df_m = df_membros[[col_uf_m, col_qtd_m]].copy()
+        df_m.columns = ['UF', 'Membros']
+        df_m['UF'] = df_m['UF'].astype(str).str.strip().str.upper()
+        df_m['Membros'] = pd.to_numeric(df_m['Membros'], errors='coerce').fillna(0)
+
+        df_i = df_inscritos_uf[[col_uf_i, col_qtd_i]].copy()
+        df_i.columns = ['UF', 'Inscritos']
+        df_i['UF'] = df_i['UF'].astype(str).str.strip().str.upper()
+        df_i['Inscritos'] = pd.to_numeric(df_i['Inscritos'], errors='coerce').fillna(0)
+
+        # Merge dos Dados
+        df_geo = pd.merge(df_m, df_i, on='UF', how='outer').fillna(0)
+        df_geo = df_geo[df_geo['UF'].str.len() == 2] # Apenas siglas válidas de UF
         
-        # Filtra linhas válidas de UF (removendo totais)
-        df_uf_clean = df_uf_clean[df_uf_clean[col_uf].astype(str).str.len() <= 3]
-        df_uf_clean = df_uf_clean.sort_values(by=col_total, ascending=False)
+        df_geo['Penetracao_%'] = (df_geo['Inscritos'] / df_geo['Membros'] * 100).round(1)
+        df_geo['Penetracao_%'] = df_geo['Penetracao_%'].replace([float('inf'), float('-inf')], 0).fillna(0)
 
-        top_uf = df_uf_clean.iloc[0][col_uf] if not df_uf_clean.empty else "-"
-        top_uf_qtd = int(df_uf_clean.iloc[0][col_total]) if not df_uf_clean.empty else 0
-        total_uf_inscritos = int(df_uf_clean[col_total].sum())
+        # Filtro de Destaques
+        df_destaque = df_geo[df_geo['UF'].isin(ESTADOS_DESTAQUE)].copy()
+        df_destaque = df_destaque.sort_values(by='Inscritos', ascending=False)
 
-        e1, e2 = st.columns([1, 2])
+        # Cards do Top Destaques
+        st.markdown("##### 📍 Destaque Regionais Estratégicas (RS, SC, PR, SP, RJ)")
+        cols_dest = st.columns(len(ESTADOS_DESTAQUE))
+        for idx, row in enumerate(df_destaque.itertuples()):
+            with cols_dest[idx]:
+                st.markdown(f'''
+                    <div class="stat-card purple">
+                        <div class="stat-value purple">{row.UF}</div>
+                        <div class="stat-label">{row.Inscritos:,} Inscritos</div>
+                        <div style="font-size: 11px; color: #64748B; margin-top: 4px;">
+                            Base: {row.Membros:,} | <b>{row.Penetracao_}%</b> da regional
+                        </div>
+                    </div>
+                '''.replace(",", "."), unsafe_allow_html=True)
 
-        with e1:
-            st.markdown(f'''
-                <div class="stat-card green"><div class="stat-value green">{top_uf} ({top_uf_qtd})</div><div class="stat-label">Maior Concentração</div></div>
-                <div class="info-card"><div class="info-icon">📍</div><div class="info-title">Estado Líder</div><div class="info-desc">Unidade federativa com maior participação de congressistas até o momento.</div></div>
-            ''', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-            st.markdown(f'''
-                <div class="stat-card"><div class="stat-value">{total_uf_inscritos:,}</div><div class="stat-label">Total Mapeado por UF</div></div>
-                <div class="info-card"><div class="info-icon">🗺️</div><div class="info-title">Abrangência Nacional</div><div class="info-desc">Soma de congressistas cadastrados com UF válida no sistema.</div></div>
-            '''.replace(",", "."), unsafe_allow_html=True)
+        # Gráficos Comparativos
+        g1, g2 = st.columns(2)
 
-        with e2:
-            fig = px.bar(
-                df_uf_clean.head(10),
-                x=col_uf,
-                y=col_total,
-                text=col_total,
-                labels={col_uf: "Estado (UF)", col_total: "Inscritos"},
-                title="Top 10 Estados com Maior Volume de Inscritos",
-                color_discrete_sequence=["#0284C7"]
+        with g1:
+            fig_comp = go.Figure()
+            fig_comp.add_trace(go.Bar(
+                x=df_destaque['UF'], y=df_destaque['Membros'], name='Membros da Regional', marker_color='#94A3B8'
+            ))
+            fig_comp.add_trace(go.Bar(
+                x=df_destaque['UF'], y=df_destaque['Inscritos'], name='Inscritos no Congresso', marker_color='#0284C7'
+            ))
+            fig_comp.update_layout(
+                title="Comparativo: Total de Membros x Inscritos (Top Regionais)",
+                barmode='group',
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                margin=dict(l=10, r=10, t=40, b=10)
             )
-            fig.update_traces(textposition='outside')
-            fig.update_layout(
+            st.plotly_chart(fig_comp, use_container_width=True)
+
+        with g2:
+            fig_pen = px.bar(
+                df_geo.sort_values(by='Penetracao_%', ascending=False).head(12),
+                x='UF',
+                y='Penetracao_%',
+                text='Penetracao_%',
+                title="Top 12 Taxa de Penetração por Estado (% Membros Inscritos)",
+                color_discrete_sequence=['#10B981']
+            )
+            fig_pen.update_traces(texttemplate='%{text}%', textposition='outside')
+            fig_pen.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 margin=dict(l=10, r=10, t=40, b=10),
-                xaxis_title="",
-                yaxis_title=""
+                yaxis_title="% de Penetração"
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig_pen, use_container_width=True)
 
-        with st.expander("📄 Ver Tabela Completa por Estado (UF)", expanded=False):
-            st.dataframe(df_uf_clean[[col_uf, col_total]].rename(columns={col_uf: "UF", col_total: "Inscritos"}), use_container_width=True)
+        with st.expander("📄 Ver Tabela Completa de Comparativo por Estado (Todos)", expanded=False):
+            st.dataframe(
+                df_geo.sort_values(by='Inscritos', ascending=False).rename(
+                    columns={'UF': 'Estado/UF', 'Membros': 'Membros Totais (iCase)', 'Inscritos': 'Inscritos Congresso (iCongresso)', 'Penetracao_%': '% Penetração'}
+                ),
+                use_container_width=True
+            )
 
     except Exception as e:
-        st.warning(f"Não foi possível processar a distribuição por estados: {e}")
+        st.error(f"Erro ao calcular a análise por estado: {e}")
 
 st.divider()
 
@@ -358,20 +403,20 @@ st.divider()
 # ====================================================
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-# Projeção Global = Total Geral Congresso + Palestrantes Aceitos + Vagas Patrocinadas Confirmadas
-projecao_confirmados = total_geral_congresso + aceito + qtd_vagas_confirmadas
+# AJUSTE REQUISITADO: Projeção Global inclui TOTAL DE VAGAS VENDIDAS PATROCINADAS (qtd_vagas_convenio) + Total Congresso
+projecao_confirmados_global = total_geral_congresso + qtd_vagas_convenio
 
-# Card Centralizado e Compacto no Centro da Tela
+# Card Centralizado e Highlighted no Centro da Tela
 _, col_centro, _ = st.columns([1, 2, 1])
 
 with col_centro:
     st.markdown(f'''
-        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.03); margin-bottom: 25px;">
-            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 MÉTRICA DE PROJEÇÃO GLOBAL</div>
-            <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">Projeção (Inscrições Confirmadas)</div>
-            <div style="font-size: 38px; font-weight: 800; color: #10B981; margin: 8px 0;">{projecao_confirmados:,}</div>
-            <div style="font-size: 11px; color: #64748B;">
-                <b>Congresso:</b> {total_geral_congresso:,} | <b>Palestrantes:</b> {aceito:,} | <b>Patrocinados:</b> {qtd_vagas_confirmadas:,}
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 22px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.03); margin-bottom: 25px;">
+            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 PROJEÇÃO GLOBAL GARANTIDA DO EVENTO</div>
+            <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">Inscrições Diretas + Cotas Patrocinadas Vendidas</div>
+            <div style="font-size: 42px; font-weight: 800; color: #10B981; margin: 8px 0;">{projecao_confirmados_global:,}</div>
+            <div style="font-size: 12px; color: #64748B;">
+                <b>Inscrições Diretas (Congresso):</b> {total_geral_congresso:,} | <b>Cotas Comerciais Faturadas:</b> {qtd_vagas_convenio:,}
             </div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
@@ -380,20 +425,20 @@ with col_centro:
 resumo_data = {
     "Módulo / Área": [
         "1. Inscrições Gerais", 
-        "2. Palestrantes", 
+        "2. Palestrantes Convocados", 
         "3. Inscrições Patrocinadas", 
         "PROJEÇÃO GLOBAL DO EVENTO"
     ],
     "Métrica Principal": [
         f"{total_geral_congresso:,} Inscritos Totais",
         f"{tot_palestrantes:,} Convocados Total",
-        f"{qtd_vagas_convenio:,} Vagas Vendidas",
-        f"{projecao_confirmados:,} Confirmados Gerais"
+        f"{qtd_vagas_convenio:,} Total Vagas Vendidas",
+        f"{projecao_confirmados_global:,} Público Projetado/Garantido"
     ],
     "Status Operacional": [
         f"{qtd_pagas:,} Pagas | {qtd_cortesia:,} Cortesias | {qtd_vouchers:,} Vouchers",
-        f"{aceito:,} Aceitos ({pendente:,} Pendentes)",
-        f"{qtd_vagas_confirmadas:,} Confirmadas ({qtd_vagas_preencher:,} a Preencher)",
+        f"{aceito:,} Convites Aceitos ({pendente:,} Pendentes)",
+        f"{qtd_vagas_confirmadas:,} Vouchers Utilizados ({qtd_vagas_preencher:,} a Preencher)",
         "BASE INTEGRADA EM TEMPO REAL"
     ]
 }
@@ -412,13 +457,13 @@ if GEMINI_API_KEY:
             try:
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 prompt = f"""
-                Atue como consultor sênior de eventos médicos da SBOT. Analise este cenário do Congresso SBOT 2026:
-                - Projeção de Inscrições Confirmadas: {projecao_confirmados}
-                - Inscrições Gerais do Congresso: {total_geral_congresso} (Pagas: {qtd_pagas}, Cortesias: {qtd_cortesia})
-                - Vagas Patrocinadas: {qtd_vagas_convenio} Vendidas ({qtd_vagas_preencher} a Preencher)
-                - Palestrantes: {aceito} Aceitos de {tot_palestrantes} convocados.
+                Atue como consultor sênior do Congresso SBOT Porto Alegre 2026. Analise:
+                - Projeção Garantida Global: {projecao_confirmados_global} participantes.
+                - Inscritos diretos no Congresso: {total_geral_congresso} (Pagas: {qtd_pagas}).
+                - Cotas Comerciais: {qtd_vagas_convenio} vagas vendidas, porém com {qtd_vagas_preencher} vagas ainda pendentes de indicação.
+                - Palestrantes: {aceito} aceitos de {tot_palestrantes}.
                 
-                Gere um parecer direto com 3 pontos de ação prioritários para a diretoria aumentar as inscrições pagas e o preenchimento dos patrocínios.
+                Forneça 3 estratégias de engajamento para alavancar a penetração nas regional do RS, SC e PR.
                 """
                 response = model.generate_content(prompt)
                 st.markdown(response.text)
