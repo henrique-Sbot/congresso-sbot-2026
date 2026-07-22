@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilização CSS personalizada de alto padrão
+# Estilização CSS personalizada
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -23,7 +23,6 @@ st.markdown("""
             background-color: #F8FAFC;
         }
 
-        /* Títulos de Seção com marcação vertical em destaque */
         .section-header {
             color: #0F172A;
             font-size: 22px;
@@ -43,7 +42,6 @@ st.markdown("""
             border-radius: 4px;
         }
 
-        /* Card Numérico Superior */
         .stat-card {
             background: #FFFFFF;
             border: 1px solid #E2E8F0;
@@ -74,7 +72,6 @@ st.markdown("""
             margin-top: 8px;
         }
 
-        /* Card Informativo Inferior */
         .info-card {
             background: #FFFFFF;
             border: 1px solid #E2E8F0;
@@ -84,21 +81,9 @@ st.markdown("""
             margin-bottom: 20px;
             min-height: 115px;
         }
-        .info-icon {
-            font-size: 20px;
-            margin-bottom: 6px;
-        }
-        .info-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #0F172A;
-            margin-bottom: 4px;
-        }
-        .info-desc {
-            font-size: 12px;
-            color: #64748B;
-            line-height: 1.4;
-        }
+        .info-icon { font-size: 20px; margin-bottom: 6px; }
+        .info-title { font-size: 13px; font-weight: 700; color: #0F172A; margin-bottom: 4px; }
+        .info-desc { font-size: 12px; color: #64748B; line-height: 1.4; }
 
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
@@ -169,59 +154,30 @@ if df_atividade is not None and not df_atividade.empty:
         qtd_vouchers = extrair_val(df_congresso_only, 'voucher')
         total_geral_congresso = extrair_val(df_congresso_only, 'qtd_total')
 
-# Exibição separada nos 4 Cards
 c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value">{qtd_pagas:,}</div>
-            <div class="stat-label">Inscrições Pagas</div>
-        </div>
-        <div class="info-card">
-            <div class="info-icon">💳</div>
-            <div class="info-title">Pagamentos Efetivados</div>
-            <div class="info-desc">Congressistas com pagamento confirmado no sistema.</div>
-        </div>
+        <div class="stat-card"><div class="stat-value">{qtd_pagas:,}</div><div class="stat-label">Inscrições Pagas</div></div>
+        <div class="info-card"><div class="info-icon">💳</div><div class="info-title">Pagamentos Efetivados</div><div class="info-desc">Congressistas com pagamento confirmado no sistema.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with c2:
     st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value blue">{qtd_cortesia:,}</div>
-            <div class="stat-label">Cortesias</div>
-        </div>
-        <div class="info-card">
-            <div class="info-icon">🎁</div>
-            <div class="info-title">Isenções Diretas</div>
-            <div class="info-desc">Cortesias cedidas à diretoria e convidados institucionais.</div>
-        </div>
+        <div class="stat-card"><div class="stat-value blue">{qtd_cortesia:,}</div><div class="stat-label">Cortesias</div></div>
+        <div class="info-card"><div class="info-icon">🎁</div><div class="info-title">Isenções Diretas</div><div class="info-desc">Cortesias cedidas à diretoria e convidados institucionais.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with c3:
     st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value blue">{qtd_vouchers:,}</div>
-            <div class="stat-label">Vouchers</div>
-        </div>
-        <div class="info-card">
-            <div class="info-icon">🎟️</div>
-            <div class="info-title">Códigos Utilizados</div>
-            <div class="info-desc">Inscrições ativadas por meio de cupons promocionais.</div>
-        </div>
+        <div class="stat-card"><div class="stat-value blue">{qtd_vouchers:,}</div><div class="stat-label">Vouchers</div></div>
+        <div class="info-card"><div class="info-icon">🎟️</div><div class="info-title">Códigos Utilizados</div><div class="info-desc">Inscrições ativadas por meio de cupons promocionais.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with c4:
     st.markdown(f'''
-        <div class="stat-card orange">
-            <div class="stat-value orange">{total_geral_congresso:,}</div>
-            <div class="stat-label">Total Geral (Congresso)</div>
-        </div>
-        <div class="info-card">
-            <div class="info-icon">📈</div>
-            <div class="info-title">Público Ativo</div>
-            <div class="info-desc">Somatório total de inscritos na atividade do congresso.</div>
-        </div>
+        <div class="stat-card orange"><div class="stat-value orange">{total_geral_congresso:,}</div><div class="stat-label">Total Geral (Congresso)</div></div>
+        <div class="info-card"><div class="info-icon">📈</div><div class="info-title">Público Ativo</div><div class="info-desc">Somatório total de inscritos na atividade do congresso.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 st.divider()
@@ -260,7 +216,6 @@ with p3:
 with p4:
     st.markdown(f'''<div class="stat-card"><div class="stat-value">{rejeitado}</div><div class="stat-label">Convites Rejeitados</div></div>''', unsafe_allow_html=True)
 
-# Tabela Detalhada de Palestrantes
 if df_palestrantes is not None and not df_palestrantes.empty:
     with st.expander("📄 Ver Detalhamento do Status dos Palestrantes", expanded=False):
         st.dataframe(df_palestrantes, use_container_width=True)
@@ -268,7 +223,7 @@ if df_palestrantes is not None and not df_palestrantes.empty:
 st.divider()
 
 # ====================================================
-# SESSÃO 3: INSCRIÇÕES PATROCINADAS (CÁLCULO PRÓPRIO)
+# SESSÃO 3: INSCRIÇÕES PATROCINADAS (SOMA MANUAL REAL)
 # ====================================================
 st.markdown('<div class="section-header">Sessão 3: Inscrições Patrocinadas</div>', unsafe_allow_html=True)
 df_patrocinadas = carregar_dados_icongresso(URL_PATROCINADOS)
@@ -277,29 +232,30 @@ qtd_vagas_convenio, qtd_vagas_confirmadas, qtd_vagas_preencher = 0, 0, 0
 df_patroc_filtrado = pd.DataFrame()
 
 if df_patrocinadas is not None and not df_patrocinadas.empty:
-    # Palavras-chave para ignorar
+    # 1. Filtro por palavras-chave institucionais/descontos
     palavras_excluir = [
         "TEOT", "EX PRESIDENTES", "MEMBROS CEC", "REMIDOS", "PALESTRANTES", 
-        "SBOTLAB", "ANUANIDADE VIA APP", "DESCONTO APLICADO", "SBOT DESCONTO ANUIDADE",
-        "TOTAL", "SOMA", "SUM"  # Exclui linhas de totais automáticos vindos da tabela
+        "SBOTLAB", "ANUANIDADE VIA APP", "DESCONTO APLICADO", "SBOT DESCONTO ANUIDADE"
     ]
-    
     padrao_regex = "|".join(palavras_excluir)
     
-    # 1. Filtra removendo convênios institucionais e linhas de totalizador da planilha original
     mascara_linhas_indesejadas = df_patrocinadas.astype(str).apply(
         lambda col: col.str.contains(padrao_regex, case=False, na=False)
     ).any(axis=1)
     
     df_patroc_filtrado = df_patrocinadas[~mascara_linhas_indesejadas].copy()
     
-    # 2. Localiza colunas numéricas
+    # 2. REMOÇÃO EXPLICITA DA ÚLTIMA LINHA (Linha de Totais da Planilha Original)
+    if len(df_patroc_filtrado) > 0:
+        df_patroc_filtrado = df_patroc_filtrado.iloc[:-1].copy()
+
+    # 3. Mapeamento das colunas numéricas
     colunas = list(df_patroc_filtrado.columns)
     col_vagas = next((c for c in colunas if any(k in c for k in ['convenio', 'vagas', 'cota'])), colunas[3] if len(colunas) > 3 else None)
     col_conf = next((c for c in colunas if 'confirm' in c), colunas[4] if len(colunas) > 4 else None)
     col_preencher = next((c for c in colunas if any(k in c for k in ['preencher', 'saldo', 'restante'])), colunas[5] if len(colunas) > 5 else None)
 
-    # 3. Faz a soma manual exclusiva das empresas ativas
+    # 4. Cálculo próprio das linhas restantes
     if col_vagas and col_conf and col_preencher:
         qtd_vagas_convenio = int(pd.to_numeric(df_patroc_filtrado[col_vagas], errors='coerce').fillna(0).sum())
         qtd_vagas_confirmadas = int(pd.to_numeric(df_patroc_filtrado[col_conf], errors='coerce').fillna(0).sum())
@@ -309,41 +265,20 @@ m1, m2, m3 = st.columns(3)
 
 with m1:
     st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value">{qtd_vagas_convenio:,}</div>
-            <div class="stat-label">Qtd. de Vagas (Convênio)</div>
-        </div>
-        <div class="info-card">
-            <div class="info-icon">🤝</div>
-            <div class="info-title">Total da Cota Comercial</div>
-            <div class="info-desc">Volume total de vagas vendidas para empresas patrocinadoras.</div>
-        </div>
+        <div class="stat-card"><div class="stat-value">{qtd_vagas_convenio:,}</div><div class="stat-label">Qtd. de Vagas (Convênio)</div></div>
+        <div class="info-card"><div class="info-icon">🤝</div><div class="info-title">Total da Cota Comercial</div><div class="info-desc">Volume de vagas vendidas para empresas patrocinadoras.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with m2:
     st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value blue">{qtd_vagas_confirmadas:,}</div>
-            <div class="stat-label">Qtd. de Vagas (Confirmadas)</div>
-        </div>
-        <div class="info-card">
-            <div class="info-icon">👤</div>
-            <div class="info-title">Vouchers Utilizados</div>
-            <div class="info-desc">Participantes com cadastro efetivado por empresas patrocinadoras.</div>
-        </div>
+        <div class="stat-card"><div class="stat-value blue">{qtd_vagas_confirmadas:,}</div><div class="stat-label">Qtd. de Vagas (Confirmadas)</div></div>
+        <div class="info-card"><div class="info-icon">👤</div><div class="info-title">Vouchers Utilizados</div><div class="info-desc">Participantes cadastrados pelas patrocinadoras.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with m3:
     st.markdown(f'''
-        <div class="stat-card orange">
-            <div class="stat-value orange">{qtd_vagas_preencher:,}</div>
-            <div class="stat-label">Qtd. de Vagas a Preencher</div>
-        </div>
-        <div class="info-card">
-            <div class="info-icon">🔄</div>
-            <div class="info-title">Saldo Disponível</div>
-            <div class="info-desc">Cotas comerciais vendidas que ainda não indicaram nominalmente o inscrito.</div>
-        </div>
+        <div class="stat-card orange"><div class="stat-value orange">{qtd_vagas_preencher:,}</div><div class="stat-label">Qtd. de Vagas a Preencher</div></div>
+        <div class="info-card"><div class="info-icon">🔄</div><div class="info-title">Saldo Disponível</div><div class="info-desc">Cotas vendidas pendentes de indicação de nome.</div></div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 if not df_patroc_filtrado.empty:
@@ -353,26 +288,27 @@ if not df_patroc_filtrado.empty:
 st.divider()
 
 # ====================================================
-# SESSÃO 4: RESUMO CONSOLIDADO E PROJEÇÃO
+# SESSÃO 4: RESUMO CONSOLIDADO
 # ====================================================
 st.markdown('<div class="section-header">Sessão 4: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-# Cálculo da Projeção Requerido: Total Geral (Congresso) + Aceitos Palestrantes + Vagas Patrocinadas Confirmadas
+# Projeção Global = Total Geral Congresso + Palestrantes Aceitos + Vagas Patrocinadas Confirmadas
 projecao_confirmados = total_geral_congresso + aceito + qtd_vagas_confirmadas
 
-# Card Destaque de Projeção Premium
-st.markdown(f'''
-    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-left: 6px solid #10B981; border-radius: 12px; padding: 22px; margin-bottom: 25px; box-shadow: 0px 4px 12px rgba(0,0,0,0.03);">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div>
-                <div style="font-size: 13px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 Métrica de Projeção Global</div>
-                <div style="font-size: 20px; font-weight: 800; color: #0F172A; margin-top: 4px;">Projeção (Inscrições Confirmadas)</div>
-                <div style="font-size: 12px; color: #64748B; margin-top: 2px;">Somatório: Total Geral Congresso ({total_geral_congresso:,}) + Palestrantes Aceitos ({aceito:,}) + Vagas Patrocinadas Confirmadas ({qtd_vagas_confirmadas:,})</div>
+# Card Centralizado e Compacto no Centro da Tela
+_, col_centro, _ = st.columns([1, 2, 1])
+
+with col_centro:
+    st.markdown(f'''
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.03); margin-bottom: 25px;">
+            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 MÉTRICA DE PROJEÇÃO GLOBAL</div>
+            <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">Projeção (Inscrições Confirmadas)</div>
+            <div style="font-size: 38px; font-weight: 800; color: #10B981; margin: 8px 0;">{projecao_confirmados:,}</div>
+            <div style="font-size: 11px; color: #64748B;">
+                <b>Congresso:</b> {total_geral_congresso:,} | <b>Palestrantes:</b> {aceito:,} | <b>Patrocinados:</b> {qtd_vagas_confirmadas:,}
             </div>
-            <div style="font-size: 42px; font-weight: 800; color: #10B981;">{projecao_confirmados:,}</div>
         </div>
-    </div>
-'''.replace(",", "."), unsafe_allow_html=True)
+    '''.replace(",", "."), unsafe_allow_html=True)
 
 # Tabela do Resumo Consolidado
 resumo_data = {
