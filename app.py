@@ -136,7 +136,6 @@ def normalizar_uf(texto):
     txt = str(texto).strip().upper()
     if len(txt) == 2:
         return txt
-    # Busca por nome do estado
     for nome, sigla in MAPA_ESTADOS.items():
         if nome in txt:
             return sigla
@@ -146,8 +145,6 @@ def normalizar_uf(texto):
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
 URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
-
-# LINK ATUALIZADO DO ICASE (RELID 1979)
 URL_MEMBROS_ESTADO = "https://icase.sbot.itarget.com.br/relatorio/relatorios/index/relid/1979/type/quantitativo/idioma_ext/1/cc_ext/1"
 URL_INSCRITOS_ESTADO = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1968/type/quantitativo/idioma_ext/1/cc_ext/190"
 
@@ -355,7 +352,7 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
         df_destaque = df_geo[df_geo['UF'].isin(ESTADOS_DESTAQUE)].copy()
         df_destaque = df_destaque.sort_values(by='Inscritos', ascending=False)
 
-        # Cards dos Destaques
+        # Cards dos Destaques Re-inseridos
         st.markdown("##### 📍 Destaque Regionais Estratégicas (RS, SC, PR, SP, RJ)")
         cols_dest = st.columns(len(ESTADOS_DESTAQUE))
         for idx, row in enumerate(df_destaque.itertuples()):
@@ -410,18 +407,19 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
             )
             st.plotly_chart(fig_pen, use_container_width=True)
 
-        with st.expander("📄 Ver Tabela Completa de Comparativo por Estado (Todos)", expanded=False):
-            st.dataframe(
-                df_geo.sort_values(by='Inscritos', ascending=False).rename(
-                    columns={
-                        'UF': 'Estado/UF', 
-                        'Membros': 'Membros Totais (iCase)', 
-                        'Inscritos': 'Inscritos Congresso (iCongresso)', 
-                        'Penetracao': '% Penetração'
-                    }
-                ),
-                use_container_width=True
-            )
+        # Tabela Visível Diretamente sem Expander
+        st.markdown("##### 📄 Comparativo Detalhado por Estado")
+        st.dataframe(
+            df_geo.sort_values(by='Inscritos', ascending=False).rename(
+                columns={
+                    'UF': 'Estado/UF', 
+                    'Membros': 'Membros Totais (iCase)', 
+                    'Inscritos': 'Inscritos Congresso (iCongresso)', 
+                    'Penetracao': '% Penetração'
+                }
+            ),
+            use_container_width=True
+        )
 
     except Exception as e:
         st.error(f"Erro ao calcular a análise por estado: {e}")
@@ -433,7 +431,8 @@ st.divider()
 # ====================================================
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-projecao_confirmados_global = total_geral_congresso + qtd_vagas_convenio
+# REGRA DE CONTAGEM SOLICITADA: Total Membros Inscritos + Palestrantes Aceitos + Vagas Patrocinadas Cadastradas
+projecao_confirmados_global = total_geral_congresso + aceito + qtd_vagas_confirmadas
 
 # Card Centralizado e Highlighted no Centro da Tela
 _, col_centro, _ = st.columns([1, 2, 1])
@@ -441,11 +440,11 @@ _, col_centro, _ = st.columns([1, 2, 1])
 with col_centro:
     st.markdown(f'''
         <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 22px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.03); margin-bottom: 25px;">
-            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 PROJEÇÃO GLOBAL GARANTIDA DO EVENTO</div>
-            <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">Inscrições Diretas + Cotas Patrocinadas Vendidas</div>
+            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 CONTAGEM FINAL DE CONFIRMADOS</div>
+            <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">Inscritos + Palestrantes Aceitos + Patrocinados Cadastrados</div>
             <div style="font-size: 42px; font-weight: 800; color: #10B981; margin: 8px 0;">{projecao_confirmados_global:,}</div>
             <div style="font-size: 12px; color: #64748B;">
-                <b>Inscrições Diretas (Congresso):</b> {total_geral_congresso:,} | <b>Cotas Comerciais Faturadas:</b> {qtd_vagas_convenio:,}
+                <b>Inscritos Gerais:</b> {total_geral_congresso:,} | <b>Palestrantes Aceitos:</b> {aceito:,} | <b>Patrocinados Cadastrados:</b> {qtd_vagas_confirmadas:,}
             </div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
@@ -456,18 +455,18 @@ resumo_data = {
         "1. Inscrições Gerais", 
         "2. Palestrantes Convocados", 
         "3. Inscrições Patrocinadas", 
-        "PROJEÇÃO GLOBAL DO EVENTO"
+        "CONTAGEM FINAL CONSOLIDADA"
     ],
     "Métrica Principal": [
         f"{total_geral_congresso:,} Inscritos Totais",
-        f"{tot_palestrantes:,} Convocados Total",
-        f"{qtd_vagas_convenio:,} Total Vagas Vendidas",
-        f"{projecao_confirmados_global:,} Público Projetado/Garantido"
+        f"{aceito:,} Palestrantes Aceitos",
+        f"{qtd_vagas_confirmadas:,} Patrocinados Cadastrados",
+        f"{projecao_confirmados_global:,} Público Final Confirmado"
     ],
     "Status Operacional": [
         f"{qtd_pagas:,} Pagas | {qtd_cortesia:,} Cortesias | {qtd_vouchers:,} Vouchers",
-        f"{aceito:,} Convites Aceitos ({pendente:,} Pendentes)",
-        f"{qtd_vagas_confirmadas:,} Vouchers Utilizados ({qtd_vagas_preencher:,} a Preencher)",
+        f"{tot_palestrantes:,} Convocados ({pendente:,} Pendentes / {rejeitado:,} Rejeitados)",
+        f"{qtd_vagas_convenio:,} Total Vagas Vendidas ({qtd_vagas_preencher:,} Pendentes)",
         "BASE INTEGRADA EM TEMPO REAL"
     ]
 }
@@ -487,12 +486,12 @@ if GEMINI_API_KEY:
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 prompt = f"""
                 Atue como consultor sênior do Congresso SBOT Porto Alegre 2026. Analise:
-                - Projeção Garantida Global: {projecao_confirmados_global} participantes.
+                - Contagem Final Consolidada: {projecao_confirmados_global} participantes.
                 - Inscritos diretos no Congresso: {total_geral_congresso} (Pagas: {qtd_pagas}).
-                - Cotas Comerciais: {qtd_vagas_convenio} vagas vendidas, porém com {qtd_vagas_preencher} vagas ainda pendentes de indicação.
-                - Palestrantes: {aceito} aceitos de {tot_palestrantes}.
+                - Palestrantes Aceitos: {aceito} de {tot_palestrantes}.
+                - Patrocinados Cadastrados: {qtd_vagas_confirmadas} de {qtd_vagas_convenio} vagas vendidas (Pendente: {qtd_vagas_preencher}).
                 
-                Forneça 3 estratégias de engajamento para alavancar a penetração nas regional do RS, SC e PR.
+                Forneça 3 estratégias de engajamento para alavancar a penetração nas regionais do RS, SC e PR.
                 """
                 response = model.generate_content(prompt)
                 st.markdown(response.text)
