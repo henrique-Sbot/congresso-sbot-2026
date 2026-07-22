@@ -105,7 +105,7 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # ----------------------------------------------------
-# FUNÇÃO DE CARREGAMENTO E TRATAMENTO
+# FUNÇÕES AUXILIARES DE CARREGAMENTO E MAPEAMENTO
 # ----------------------------------------------------
 @st.cache_data(ttl=180)
 def carregar_dados_icongresso(url):
@@ -122,11 +122,33 @@ def carregar_dados_icongresso(url):
         st.error(f"Erro na conexão: {e}")
     return None
 
+MAPA_ESTADOS = {
+    'ACRE': 'AC', 'ALAGOAS': 'AL', 'AMAPA': 'AP', 'AMAZONAS': 'AM', 'BAHIA': 'BA',
+    'CEARA': 'CE', 'DISTRITO FEDERAL': 'DF', 'ESPIRITO SANTO': 'ES', 'GOIAS': 'GO',
+    'MARANHAO': 'MA', 'MATO GROSSO': 'MT', 'MATO GROSSO DO SUL': 'MS', 'MINAS GERAIS': 'MG',
+    'PARA': 'PA', 'PARAIBA': 'PB', 'PARANA': 'PR', 'PERNAMBUCO': 'PE', 'PIAUI': 'PI',
+    'RIO DE JANEIRO': 'RJ', 'RIO GRANDE DO NORTE': 'RN', 'RIO GRANDE DO SUL': 'RS',
+    'RONDONIA': 'RO', 'RORAIMA': 'RR', 'SANTA CATARINA': 'SC', 'SAO PAULO': 'SP',
+    'SERGIPE': 'SE', 'TOCANTINS': 'TO'
+}
+
+def normalizar_uf(texto):
+    txt = str(texto).strip().upper()
+    if len(txt) == 2:
+        return txt
+    # Busca por nome do estado
+    for nome, sigla in MAPA_ESTADOS.items():
+        if nome in txt:
+            return sigla
+    return None
+
 # URLs do Sistema
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
 URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
-URL_MEMBROS_ESTADO = "https://icase.sbot.itarget.com.br/relatorio/relatorios/index/relid/1978/type/quantitativo/idioma_ext/1/cc_ext/1"
+
+# LINK ATUALIZADO DO ICASE (RELID 1979)
+URL_MEMBROS_ESTADO = "https://icase.sbot.itarget.com.br/relatorio/relatorios/index/relid/1979/type/quantitativo/idioma_ext/1/cc_ext/1"
 URL_INSCRITOS_ESTADO = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1968/type/quantitativo/idioma_ext/1/cc_ext/190"
 
 st.title("📊 Congresso SBOT | Porto Alegre 2026")
@@ -295,34 +317,37 @@ st.divider()
 # ====================================================
 st.markdown('<div class="section-header">Sessão 4: Análise por Estado (Regional SBOT x Inscritos)</div>', unsafe_allow_html=True)
 
-df_membros = carregar_dados_icongresso(URL_MEMBROS_ESTADO)
-df_inscritos_uf = carregar_dados_icongresso(URL_INSCRITOS_ESTADO)
+df_membros_raw = carregar_dados_icongresso(URL_MEMBROS_ESTADO)
+df_inscritos_raw = carregar_dados_icongresso(URL_INSCRITOS_ESTADO)
 
 ESTADOS_DESTAQUE = ["RS", "SC", "PR", "SP", "RJ"]
 
-if df_membros is not None and df_inscritos_uf is not None:
+if df_membros_raw is not None and df_inscritos_raw is not None:
     try:
-        col_uf_m = next((c for c in df_membros.columns if any(k in c for k in ['uf', 'estado', 'sigla'])), df_membros.columns[0])
-        col_qtd_m = next((c for c in df_membros.columns if any(k in c for k in ['total', 'qtd', 'quantidade'])), df_membros.columns[-1])
+        # Tratamento Membros Totais (iCase)
+        col_uf_m = df_membros_raw.columns[0]
+        col_qtd_m = df_membros_raw.columns[-1]
 
-        col_uf_i = next((c for c in df_inscritos_uf.columns if any(k in c for k in ['uf', 'estado', 'sigla'])), df_inscritos_uf.columns[0])
-        col_qtd_i = next((c for c in df_inscritos_uf.columns if any(k in c for k in ['total', 'qtd', 'quantidade'])), df_inscritos_uf.columns[-1])
-
-        df_m = df_membros[[col_uf_m, col_qtd_m]].copy()
-        df_m.columns = ['UF', 'Membros']
-        df_m['UF'] = df_m['UF'].astype(str).str.strip().str.upper()
+        df_m = df_membros_raw[[col_uf_m, col_qtd_m]].copy()
+        df_m.columns = ['UF_Raw', 'Membros']
+        df_m['UF'] = df_m['UF_Raw'].apply(normalizar_uf)
         df_m['Membros'] = pd.to_numeric(df_m['Membros'], errors='coerce').fillna(0)
+        df_m = df_m.dropna(subset=['UF']).groupby('UF')['Membros'].sum().reset_index()
 
-        df_i = df_inscritos_uf[[col_uf_i, col_qtd_i]].copy()
-        df_i.columns = ['UF', 'Inscritos']
-        df_i['UF'] = df_i['UF'].astype(str).str.strip().str.upper()
+        # Tratamento Inscritos Congresso (iCongresso)
+        col_uf_i = df_inscritos_raw.columns[0]
+        col_qtd_i = df_inscritos_raw.columns[-1]
+
+        df_i = df_inscritos_raw[[col_uf_i, col_qtd_i]].copy()
+        df_i.columns = ['UF_Raw', 'Inscritos']
+        df_i['UF'] = df_i['UF_Raw'].apply(normalizar_uf)
         df_i['Inscritos'] = pd.to_numeric(df_i['Inscritos'], errors='coerce').fillna(0)
+        df_i = df_i.dropna(subset=['UF']).groupby('UF')['Inscritos'].sum().reset_index()
 
         # Merge dos Dados
         df_geo = pd.merge(df_m, df_i, on='UF', how='outer').fillna(0)
-        df_geo = df_geo[df_geo['UF'].str.len() == 2] # Apenas siglas válidas
         
-        # Nome de coluna limpo sem símbolos para evitar bug do itertuples
+        # Cálculo de Penetração
         df_geo['Penetracao'] = (df_geo['Inscritos'] / df_geo['Membros'] * 100).round(1)
         df_geo['Penetracao'] = df_geo['Penetracao'].replace([float('inf'), float('-inf')], 0).fillna(0)
 
@@ -353,7 +378,7 @@ if df_membros is not None and df_inscritos_uf is not None:
         with g1:
             fig_comp = go.Figure()
             fig_comp.add_trace(go.Bar(
-                x=df_destaque['UF'], y=df_destaque['Membros'], name='Membros da Regional', marker_color='#94A3B8'
+                x=df_destaque['UF'], y=df_destaque['Membros'], name='Membros da Regional (iCase)', marker_color='#94A3B8'
             ))
             fig_comp.add_trace(go.Bar(
                 x=df_destaque['UF'], y=df_destaque['Inscritos'], name='Inscritos no Congresso', marker_color='#0284C7'
@@ -388,7 +413,12 @@ if df_membros is not None and df_inscritos_uf is not None:
         with st.expander("📄 Ver Tabela Completa de Comparativo por Estado (Todos)", expanded=False):
             st.dataframe(
                 df_geo.sort_values(by='Inscritos', ascending=False).rename(
-                    columns={'UF': 'Estado/UF', 'Membros': 'Membros Totais (iCase)', 'Inscritos': 'Inscritos Congresso (iCongresso)', 'Penetracao': '% Penetração'}
+                    columns={
+                        'UF': 'Estado/UF', 
+                        'Membros': 'Membros Totais (iCase)', 
+                        'Inscritos': 'Inscritos Congresso (iCongresso)', 
+                        'Penetracao': '% Penetração'
+                    }
                 ),
                 use_container_width=True
             )
