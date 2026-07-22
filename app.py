@@ -59,7 +59,7 @@ st.markdown("""
             border: 1px solid #E2E8F0;
             border-top: 4px solid #0284C7;
             border-radius: 10px 10px 0px 0px;
-            padding: 18px 12px;
+            padding: 20px 14px;
             text-align: center;
         }
         .stat-card.orange { border-top-color: #EA580C; }
@@ -67,7 +67,7 @@ st.markdown("""
         .stat-card.purple { border-top-color: #8B5CF6; }
         
         .stat-value {
-            font-size: 32px;
+            font-size: 38px;
             font-weight: 800;
             color: #0F172A;
             line-height: 1;
@@ -78,12 +78,12 @@ st.markdown("""
         .stat-value.purple { color: #8B5CF6; }
         
         .stat-label {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 700;
             color: #64748B;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-top: 8px;
+            margin-top: 10px;
         }
 
         .info-card {
@@ -91,13 +91,34 @@ st.markdown("""
             border: 1px solid #E2E8F0;
             border-top: none;
             border-radius: 0px 0px 10px 10px;
-            padding: 16px;
+            padding: 18px;
             margin-bottom: 20px;
-            min-height: 115px;
+            min-height: 125px;
         }
-        .info-icon { font-size: 20px; margin-bottom: 6px; }
-        .info-title { font-size: 13px; font-weight: 700; color: #0F172A; margin-bottom: 4px; }
-        .info-desc { font-size: 12px; color: #64748B; line-height: 1.4; }
+        .info-icon { font-size: 24px; margin-bottom: 6px; }
+        .info-title { font-size: 15px; font-weight: 700; color: #0F172A; margin-bottom: 6px; }
+        .info-desc { font-size: 13px; color: #64748B; line-height: 1.4; }
+
+        .progress-bar-bg {
+            background-color: #E2E8F0;
+            border-radius: 10px;
+            height: 18px;
+            width: 100%;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar-fill-real {
+            background: linear-gradient(90deg, #0284C7, #38BDF8);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .progress-bar-fill-proj {
+            background: linear-gradient(90deg, #10B981, #34D399);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
 
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
@@ -422,47 +443,96 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
 
 st.divider()
 
-st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos & Metas</div>', unsafe_allow_html=True)
+
+META_INSCRITOS = 3500
 
 # Cálculo com a regra exata solicitada:
-# Contagem Final = Total de Inscritos + Palestrantes Aceitos - Palestrantes Inscritos + Vagas Patrocinadas (a Preencher)
 projecao_confirmados_global = total_geral_congresso + aceito - palestrantes_inscritos_qtd + qtd_vagas_preencher
 
-_, col_centro, _ = st.columns([1, 2.5, 1])
+pct_real_meta = round((total_geral_congresso / META_INSCRITOS) * 100, 1) if META_INSCRITOS > 0 else 0
+pct_proj_meta = round((projecao_confirmados_global / META_INSCRITOS) * 100, 1) if META_INSCRITOS > 0 else 0
 
-with col_centro:
+# Cards com Projeção e Meta
+col_meta1, col_meta2 = st.columns(2)
+
+with col_meta1:
     st.markdown(f'''
-        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 22px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.03); margin-bottom: 25px;">
-            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 CONTAGEM FINAL DE CONFIRMADOS</div>
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #0284C7; border-radius: 12px; padding: 22px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.03);">
+            <div style="font-size: 13px; font-weight: 800; color: #0284C7; text-transform: uppercase; letter-spacing: 0.8px;">🎯 META ESTABELECIDA SBOT 2026</div>
+            <div style="font-size: 44px; font-weight: 800; color: #0F172A; margin: 10px 0;">{META_INSCRITOS:,}</div>
+            <div style="font-size: 13px; font-weight: 600; color: #64748B;">Meta global de congressistas para Porto Alegre 2026</div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+with col_meta2:
+    st.markdown(f'''
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 22px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.03);">
+            <div style="font-size: 13px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🚀 CONTAGEM FINAL PROJETADA DE CONFIRMADOS</div>
             <div style="font-size: 44px; font-weight: 800; color: #10B981; margin: 10px 0;">{projecao_confirmados_global:,}</div>
-            <div style="font-size: 13px; font-weight: 700; color: #0F172A; background: #F1F5F9; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
-                <span style="color:#EA580C;">{total_geral_congresso:,}</span> (Inscritos Totais) + 
-                <span style="color:#10B981;">{aceito:,}</span> (Palestrantes Aceitos) − 
-                <span style="color:#8B5CF6;">{palestrantes_inscritos_qtd:,}</span> (Palestrantes Inscritos) + 
-                <span style="color:#0284C7;">{qtd_vagas_preencher:,}</span> (Vagas a Preencher)
+            <div style="font-size: 13px; font-weight: 700; color: #0F172A; background: #F1F5F9; padding: 8px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <span style="color:#EA580C;">{total_geral_congresso:,}</span> (Inscritos Reais) + 
+                <span style="color:#10B981;">{aceito:,}</span> (Palest. Aceitos) − 
+                <span style="color:#8B5CF6;">{palestrantes_inscritos_qtd:,}</span> (Palest. Inscritos) + 
+                <span style="color:#0284C7;">{qtd_vagas_preencher:,}</span> (Vagas Vendidas)
             </div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Indicadores de Atingimento de Meta com Barras de Progresso
+col_p1, col_p2 = st.columns(2)
+
+with col_p1:
+    st.markdown(f'''
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; box-shadow: 0px 2px 8px rgba(0,0,0,0.02);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 14px; font-weight: 700; color: #0F172A;">Total de Inscritos Reais vs Meta</span>
+                <span style="font-size: 18px; font-weight: 800; color: #0284C7;">{pct_real_meta}%</span>
+            </div>
+            <div style="font-size: 12px; color: #64748B; margin-top: 4px;"><b>{total_geral_congresso:,}</b> inscritos de <b>{META_INSCRITOS:,}</b> atingidos</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill-real" style="width: {min(pct_real_meta, 100.0)}%;"></div>
+            </div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+with col_p2:
+    st.markdown(f'''
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; box-shadow: 0px 2px 8px rgba(0,0,0,0.02);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 14px; font-weight: 700; color: #0F172A;">Total Projetado (Sessão 5) vs Meta</span>
+                <span style="font-size: 18px; font-weight: 800; color: #10B981;">{pct_proj_meta}%</span>
+            </div>
+            <div style="font-size: 12px; color: #64748B; margin-top: 4px;"><b>{projecao_confirmados_global:,}</b> projetados de <b>{META_INSCRITOS:,}</b> atingidos</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill-proj" style="width: {min(pct_proj_meta, 100.0)}%;"></div>
+            </div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
 # Tabela formatada visualmente do Resumo Consolidado
 resumo_data = {
     "Módulo / Área": [
-        "1. Inscrições Gerais", 
+        "1. Inscrições Gerais (Real)", 
         "2. Palestrantes Convocados", 
         "3. Inscrições Patrocinadas", 
         "CONTAGEM FINAL PROJETADA"
     ],
     "Métrica Principal": [
-        f"{total_geral_congresso:,} Inscritos Totais",
+        f"{total_geral_congresso:,} Inscritos Totais ({pct_real_meta}% da Meta)",
         f"{aceito:,} Aceitos ({palestrantes_inscritos_qtd:,} Já Inscritos)",
         f"{qtd_vagas_preencher:,} Vagas Pendentes a Preencher",
-        f"{projecao_confirmados_global:,} Público Final Projetado"
+        f"{projecao_confirmados_global:,} Público Final Projetado ({pct_proj_meta}% da Meta)"
     ],
     "Status Operacional": [
         f"{qtd_pagas:,} Pagas | {qtd_cortesia:,} Cortesias | {qtd_vouchers:,} Vouchers",
         f"{pendente:,} Convites Pendentes | {rejeitado:,} Rejeitados",
         f"{qtd_vagas_confirmadas:,} Vagas Confirmadas de {qtd_vagas_convenio:,} Vendidas",
-        f"Cálculo: Total Congresso ({total_geral_congresso:,}) + Aceitos Líquidos ({aceito - palestrantes_inscritos_qtd:,}) + Patrocinadas Pendentes ({qtd_vagas_preencher:,})"
+        f"Meta Geral: {META_INSCRITOS:,} | Cálculo: Congresso ({total_geral_congresso:,}) + Palestrantes Líquidos ({aceito - palestrantes_inscritos_qtd:,}) + Patrocinadas Pendentes ({qtd_vagas_preencher:,})"
     ]
 }
 
@@ -481,15 +551,17 @@ if GEMINI_API_KEY:
                 Você é um consultor executivo sênior especialista em eventos médicos e científicos.
                 Analise os dados atuais do 58º Congresso Anual da SBOT (Porto Alegre 2026):
 
-                - Inscrições Gerais do Congresso: {total_geral_congresso} (Pagas: {qtd_pagas}, Cortesias: {qtd_cortesia}, Vouchers: {qtd_vouchers})
+                - Meta de Inscrições: {META_INSCRITOS} congressistas
+                - Inscrições Reais Atuais: {total_geral_congresso} ({pct_real_meta}% da meta)
+                - Projeção Consolidada Final: {projecao_confirmados_global} ({pct_proj_meta}% da meta)
+                - Detalhamento: Pagas ({qtd_pagas}), Cortesias ({qtd_cortesia}), Vouchers ({qtd_vouchers})
                 - Palestrantes: {tot_palestrantes} convocados ({aceito} aceitos, {palestrantes_inscritos_qtd} já inscritos, {pendente} pendentes, {rejeitado} rejeitados)
                 - Patrocinadores: {qtd_vagas_convenio} vagas vendidas ({qtd_vagas_confirmadas} confirmadas, {qtd_vagas_preencher} a preencher)
-                - Contagem Final Projetada de Confirmados: {projecao_confirmados_global} congressistas
 
-                Forneça um diagnóstico executivo com:
+                Forneça um diagnóstico executivo focado no atingimento da meta de 3.500 inscritos com:
                 1. Destaques Positivos
-                2. Gargalos e Pontos de Atenção
-                3. Três Ações Recomendadas Imediatas para Alavancar Inscrições e Atingir o Público Alvo.
+                2. Gargalos e Pontos de Atenção em relação à Meta de 3.500
+                3. Três Ações Recomendadas Imediatas para Alavancar Inscrições e Encurtar a Distância até a Meta.
 
                 Responda em formato markdown legível, direto e executivo.
                 """
