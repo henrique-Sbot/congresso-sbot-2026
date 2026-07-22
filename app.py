@@ -5,16 +5,12 @@ import io
 import re
 import google.generativeai as genai
 
-# ----------------------------------------------------
-# CONFIGURAÇÃO DE PÁGINA E DESIGN PREMIUM
-# ----------------------------------------------------
 st.set_page_config(
     page_title="Congresso SBOT | Porto Alegre 2026",
     page_icon="📊",
     layout="wide"
 )
 
-# Estilização CSS personalizada
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -93,9 +89,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------------------------
-# SIDEBAR
-# ----------------------------------------------------
 st.sidebar.image("https://sbot.org.br/wp-content/uploads/2021/04/logo-sbot.png", width=180)
 st.sidebar.title("Painel Executivo")
 GEMINI_API_KEY = st.sidebar.text_input("Google AI Studio API Key", type="password")
@@ -103,9 +96,6 @@ GEMINI_API_KEY = st.sidebar.text_input("Google AI Studio API Key", type="passwor
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-# ----------------------------------------------------
-# FUNÇÕES AUXILIARES
-# ----------------------------------------------------
 @st.cache_data(ttl=180)
 def carregar_dados_icongresso(url):
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -174,7 +164,6 @@ def extrair_dados_geograficos(df, nome_valor):
         df_res = df_res.groupby('UF')[nome_valor].sum().reset_index()
     return df_res
 
-# URLs dos Relatórios
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
 URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
@@ -186,9 +175,6 @@ st.title("📊 Congresso SBOT | Porto Alegre 2026")
 st.caption("Acompanhamento estratégico em tempo real, penetração por regional e projeções consolidadas")
 st.divider()
 
-# ====================================================
-# CARREGAMENTO DE PALESTRANTES INSCRITOS (RELID 1980)
-# ====================================================
 df_palestrantes_inscritos_raw = carregar_dados_icongresso(URL_PALESTRANTES_INSCRITOS)
 palestrantes_inscritos_qtd = 0
 
@@ -200,9 +186,6 @@ if df_palestrantes_inscritos_raw is not None and not df_palestrantes_inscritos_r
             df_palestrantes_inscritos_raw[df_palestrantes_inscritos_raw[col_p].astype(str).str.strip().str.upper() == 'SIM']
         )
 
-# ====================================================
-# SESSÃO 1: INSCRIÇÕES GERAIS (CONGRESSO)
-# ====================================================
 st.markdown('<div class="section-header">Sessão 1: Inscrições Gerais (Congresso)</div>', unsafe_allow_html=True)
 df_atividade = carregar_dados_icongresso(URL_ATIVIDADE)
 
@@ -259,9 +242,6 @@ with c4:
 
 st.divider()
 
-# ====================================================
-# SESSÃO 2: PALESTRANTES
-# ====================================================
 st.markdown('<div class="section-header">Sessão 2: Palestrantes</div>', unsafe_allow_html=True)
 df_palestrantes = carregar_dados_icongresso(URL_PALESTRANTES)
 
@@ -308,9 +288,6 @@ if df_palestrantes is not None and not df_palestrantes.empty:
 
 st.divider()
 
-# ====================================================
-# SESSÃO 3: INSCRIÇÕES PATROCINADAS
-# ====================================================
 st.markdown('<div class="section-header">Sessão 3: Inscrições Patrocinadas</div>', unsafe_allow_html=True)
 df_patrocinadas = carregar_dados_icongresso(URL_PATROCINADOS)
 
@@ -369,9 +346,6 @@ if not df_patroc_filtrado.empty:
 
 st.divider()
 
-# ====================================================
-# SESSÃO 4: ANÁLISE POR ESTADO (MEMBROS X INSCRITOS)
-# ====================================================
 st.markdown('<div class="section-header">Sessão 4: Análise por Estado (Regional SBOT x Inscritos)</div>', unsafe_allow_html=True)
 
 df_membros_raw = carregar_dados_icongresso(URL_MEMBROS_ESTADO)
@@ -427,9 +401,6 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
 
 st.divider()
 
-# ====================================================
-# SESSÃO 5: RESUMO CONSOLIDADO
-# ====================================================
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
 # Cálculo com a regra exata solicitada:
@@ -452,7 +423,7 @@ with col_centro:
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
-# Tabela formatada visualmente
+# Tabela formatada visualmente do Resumo Consolidado
 resumo_data = {
     "Módulo / Área": [
         "1. Inscrições Gerais", 
@@ -468,42 +439,40 @@ resumo_data = {
     ],
     "Status Operacional": [
         f"{qtd_pagas:,} Pagas | {qtd_cortesia:,} Cortesias | {qtd_vouchers:,} Vouchers",
-        f"{tot_palestrantes:,} Convocados ({pendente:,} Pendentes / {rejeitado:,} Rejeitados)",
-        f"{qtd_vagas_convenio:,} Total Vagas Vendidas ({qtd_vagas_confirmadas:,} Utilizadas)",
-        "FÓRMULA AJUSTADA INTEGRADA EM TEMPO REAL"
+        f"{pendente:,} Convites Pendentes | {rejeitado:,} Rejeitados",
+        f"{qtd_vagas_confirmadas:,} Vagas Confirmadas de {qtd_vagas_convenio:,} Vendidas",
+        f"Cálculo: Total Congresso ({total_geral_congresso:,}) + Aceitos Líquidos ({aceito - palestrantes_inscritos_qtd:,}) + Patrocinadas Pendentes ({qtd_vagas_preencher:,})"
     ]
 }
 
-df_resumo_display = pd.DataFrame(resumo_data)
-st.dataframe(
-    df_resumo_display, 
-    use_container_width=True, 
-    hide_index=True
-)
+df_resumo_final = pd.DataFrame(resumo_data)
+st.dataframe(df_resumo_final, use_container_width=True, hide_index=True)
 
-# ====================================================
-# AGENTE IA
-# ====================================================
-st.divider()
-st.subheader("🤖 Diagnóstico de Inteligência Executiva")
-
+# Integrando Análise Preditiva do Google Gemini se a chave de API for informada
 if GEMINI_API_KEY:
-    if st.button("✨ Gerar Análise Estratégica"):
-        with st.spinner("Analisando métricas do evento..."):
+    st.divider()
+    st.markdown("### 🤖 Diagnóstico Executivo da Inteligência Artificial (Google Gemini)")
+    if st.button("✨ Gerar Análise Estratégica Atualizada"):
+        with st.spinner("Analisando dados do congresso com Google Gemini..."):
             try:
-                model = genai.GenerativeModel('gemini-2.5-flash')
+                model = genai.GenerativeModel('gemini-1.5-flash')
                 prompt = f"""
-                Atue como consultor sênior do Congresso SBOT Porto Alegre 2026. Analise:
-                - Contagem Final Projetada: {projecao_confirmados_global} participantes.
-                - Inscritos diretos no Congresso: {total_geral_congresso} (Pagas: {qtd_pagas}).
-                - Palestrantes Aceitos: {aceito} (Inscritos: {palestrantes_inscritos_qtd}).
-                - Vagas Patrocinadas Pendentes: {qtd_vagas_preencher}.
-                
-                Forneça 3 estratégias de engajamento para converter os palestrantes pendentes de inscrição e acelerar o preenchimento dos convênios.
+                Você é um consultor executivo sênior especialista em eventos médicos e científicos.
+                Analise os dados atuais do 58º Congresso Anual da SBOT (Porto Alegre 2026):
+
+                - Inscrições Gerais do Congresso: {total_geral_congresso} (Pagas: {qtd_pagas}, Cortesias: {qtd_cortesia}, Vouchers: {qtd_vouchers})
+                - Palestrantes: {tot_palestrantes} convocados ({aceito} aceitos, {palestrantes_inscritos_qtd} já inscritos, {pendente} pendentes, {rejeitado} rejeitados)
+                - Patrocinadores: {qtd_vagas_convenio} vagas vendidas ({qtd_vagas_confirmadas} confirmadas, {qtd_vagas_preencher} a preencher)
+                - Contagem Final Projetada de Confirmados: {projecao_confirmados_global} congressistas
+
+                Forneça um diagnóstico executivo com:
+                1. Destaques Positivos
+                2. Gargalos e Pontos de Atenção
+                3. Três Ações Recomendadas Imediatas para Alavancar Inscrições e Atingir o Público Alvo.
+
+                Responda em formato markdown legível, direto e executivo.
                 """
                 response = model.generate_content(prompt)
                 st.markdown(response.text)
             except Exception as e:
-                st.error(f"Erro ao consultar Gemini: {e}")
-else:
-    st.info("💡 Insira sua API Key do Google AI Studio na barra lateral para liberar os diagnósticos da IA.")
+                st.error(f"Erro ao comunicar com a API do Gemini: {e}")
