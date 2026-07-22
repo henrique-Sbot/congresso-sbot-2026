@@ -20,6 +20,21 @@ st.markdown("""
             background-color: #F8FAFC;
         }
 
+        /* Ocultar elementos nativos do Streamlit (Header, Toolbar, Menu, Footer e Marca d'água) */
+        header, [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stHeaderActionElements"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0px !important;
+        }
+        #MainMenu, footer {
+            visibility: hidden !important;
+            display: none !important;
+        }
+        .block-container {
+            padding-top: 1.5rem !important;
+            padding-bottom: 2rem !important;
+        }
+
         .section-header {
             color: #0F172A;
             font-size: 22px;
@@ -91,6 +106,12 @@ st.markdown("""
 
 st.sidebar.image("https://sbot.org.br/wp-content/uploads/2021/04/logo-sbot.png", width=180)
 st.sidebar.title("Painel Executivo")
+
+# Botão para forçar atualização imediata e limpar cache
+if st.sidebar.button("🔄 Atualizar Dados Agora", use_container_width=True):
+    st.cache_data.clear()
+    st.rerun()
+
 GEMINI_API_KEY = st.sidebar.text_input("Google AI Studio API Key", type="password")
 
 if GEMINI_API_KEY:
