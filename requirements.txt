@@ -6,3 +6,9 @@ google-generativeai
 plotly
 lxml
 html5lib
+streamlit
+pandas
+plotly
+google-generativeai
+matplotlib
+jinja2
