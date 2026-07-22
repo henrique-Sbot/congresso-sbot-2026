@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import requests
 import io
-import plotly.express as px
-import plotly.graph_objects as go
 import google.generativeai as genai
 
 # ----------------------------------------------------
@@ -348,77 +346,44 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
         df_geo['Penetracao'] = (df_geo['Inscritos'] / df_geo['Membros'] * 100).round(1)
         df_geo['Penetracao'] = df_geo['Penetracao'].replace([float('inf'), float('-inf')], 0).fillna(0)
 
-        # Filtro de Destaques
-        df_destaque = df_geo[df_geo['UF'].isin(ESTADOS_DESTAQUE)].copy()
-        df_destaque = df_destaque.sort_values(by='Inscritos', ascending=False)
-
-        # Cards dos Destaques Re-inseridos
-        st.markdown("##### 📍 Destaque Regionais Estratégicas (RS, SC, PR, SP, RJ)")
+        # Cards para Estratégia dos Estados de Destaque
+        st.markdown("##### 📍 Regionais Estratégicas em Destaque")
         cols_dest = st.columns(len(ESTADOS_DESTAQUE))
-        for idx, row in enumerate(df_destaque.itertuples()):
+        
+        for idx, uf in enumerate(ESTADOS_DESTAQUE):
+            d_uf = df_geo[df_geo['UF'] == uf]
+            insc = int(d_uf['Inscritos'].values[0]) if not d_uf.empty else 0
+            memb = int(d_uf['Membros'].values[0]) if not d_uf.empty else 0
+            pen = d_uf['Penetracao'].values[0] if not d_uf.empty else 0.0
+
             with cols_dest[idx]:
                 st.markdown(f'''
                     <div class="stat-card purple">
-                        <div class="stat-value purple">{row.UF}</div>
-                        <div class="stat-label">{int(row.Inscritos):,} Inscritos</div>
-                        <div style="font-size: 11px; color: #64748B; margin-top: 4px;">
-                            Base: {int(row.Membros):,} | <b>{row.Penetracao}%</b> da regional
-                        </div>
+                        <div class="stat-value purple">{uf}</div>
+                        <div class="stat-label">{insc:,} Inscritos</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-title">Penetração: {pen}%</div>
+                        <div class="info-desc"><b>Base Regional:</b> {memb:,} membros</div>
                     </div>
                 '''.replace(",", "."), unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Gráficos Comparativos
-        g1, g2 = st.columns(2)
-
-        with g1:
-            fig_comp = go.Figure()
-            fig_comp.add_trace(go.Bar(
-                x=df_destaque['UF'], y=df_destaque['Membros'], name='Membros da Regional (iCase)', marker_color='#94A3B8'
-            ))
-            fig_comp.add_trace(go.Bar(
-                x=df_destaque['UF'], y=df_destaque['Inscritos'], name='Inscritos no Congresso', marker_color='#0284C7'
-            ))
-            fig_comp.update_layout(
-                title="Comparativo: Total de Membros x Inscritos (Top Regionais)",
-                barmode='group',
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                margin=dict(l=10, r=10, t=40, b=10)
-            )
-            st.plotly_chart(fig_comp, use_container_width=True)
-
-        with g2:
-            fig_pen = px.bar(
-                df_geo.sort_values(by='Penetracao', ascending=False).head(12),
-                x='UF',
-                y='Penetracao',
-                text='Penetracao',
-                title="Top 12 Taxa de Penetração por Estado (% Membros Inscritos)",
-                color_discrete_sequence=['#10B981']
-            )
-            fig_pen.update_traces(texttemplate='%{text}%', textposition='outside')
-            fig_pen.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                margin=dict(l=10, r=10, t=40, b=10),
-                yaxis_title="% de Penetração"
-            )
-            st.plotly_chart(fig_pen, use_container_width=True)
-
-        # Tabela Visível Diretamente sem Expander
-        st.markdown("##### 📄 Comparativo Detalhado por Estado")
+        # Tabela Completa e Formatada (Padrão das Outras Sessões)
+        st.markdown("##### 📄 Tabela Comparativa Consolidada por Estado")
+        
+        df_tabela_uf = df_geo.sort_values(by='Inscritos', ascending=False).copy()
+        df_tabela_uf.columns = ['Estado (UF)', 'Base Membros SBOT (iCase)', 'Inscritos Congresso (iCongresso)', '% Taxa Penetração']
+        
         st.dataframe(
-            df_geo.sort_values(by='Inscritos', ascending=False).rename(
-                columns={
-                    'UF': 'Estado/UF', 
-                    'Membros': 'Membros Totais (iCase)', 
-                    'Inscritos': 'Inscritos Congresso (iCongresso)', 
-                    'Penetracao': '% Penetração'
-                }
-            ),
-            use_container_width=True
+            df_tabela_uf.style.format({
+                'Base Membros SBOT (iCase)': '{:,.0f}',
+                'Inscritos Congresso (iCongresso)': '{:,.0f}',
+                '% Taxa Penetração': '{:.1f}%'
+            }),
+            use_container_width=True,
+            height=400
         )
 
     except Exception as e:
@@ -431,10 +396,10 @@ st.divider()
 # ====================================================
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-# REGRA DE CONTAGEM SOLICITADA: Total Membros Inscritos + Palestrantes Aceitos + Vagas Patrocinadas Cadastradas
+# CONTAGEM FINAL CONSOLIDADA: Total Inscritos + Palestrantes Aceitos + Patrocinados Confirmados
 projecao_confirmados_global = total_geral_congresso + aceito + qtd_vagas_confirmadas
 
-# Card Centralizado e Highlighted no Centro da Tela
+# Card Centralizado
 _, col_centro, _ = st.columns([1, 2, 1])
 
 with col_centro:
