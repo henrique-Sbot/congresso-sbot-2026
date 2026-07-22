@@ -2,11 +2,10 @@ import streamlit as st
 import pandas as pd
 import requests
 import io
-import plotly.express as px
 import google.generativeai as genai
 
 # ----------------------------------------------------
-# CONFIGURAÇÃO DE PÁGINA E DESIGN PREMIUM SBOT
+# CONFIGURAÇÃO DE PÁGINA E DESIGN ULTRA-PREMIUM
 # ----------------------------------------------------
 st.set_page_config(
     page_title="Dashboard Executivo SBOT 2026",
@@ -14,50 +13,103 @@ st.set_page_config(
     layout="wide"
 )
 
-# Cores Oficiais SBOT
-VERDE_SBOT = "#046A38"
-CINZA_SBOT = "#333F48"
-
-# Estilização CSS Premium para Cards e Sombras
-st.markdown(f"""
+# Estilização CSS personalizada para recriar o visual exato da imagem
+st.markdown("""
     <style>
-        body {{
-            background-color: #F8F9FA;
-        }}
-        h1, h2, h3, h4 {{ 
-            color: {VERDE_SBOT} !important; 
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        html, body, [class*="css"] {
             font-family: 'Inter', sans-serif;
-            font-weight: 700;
-        }}
-        
-        /* Layout dos Cards Premium */
-        div[data-testid="stMetric"] {{
-            background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
-            border: 1px solid #E2E8F0;
-            border-top: 4px solid {VERDE_SBOT};
-            padding: 18px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }}
-        
-        div[data-testid="stMetricLabel"] {{
-            color: {CINZA_SBOT} !important;
-            font-size: 13px !important;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }}
-        
-        div[data-testid="stMetricValue"] {{
-            color: {VERDE_SBOT} !important;
-            font-size: 30px !important;
-            font-weight: 800;
-        }}
+            background-color: #F4F6F8;
+        }
 
-        section[data-testid="stSidebar"] {{
-            background-color: #FFFFFF;
-            border-right: 1px solid #E2E8F0;
-        }}
+        /* Títulos com barra vertical na esquerda */
+        .section-header {
+            color: #0F172A;
+            font-size: 26px;
+            font-weight: 800;
+            margin-top: 25px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .section-header::before {
+            content: "";
+            display: inline-block;
+            width: 5px;
+            height: 28px;
+            background-color: #0284C7;
+            margin-right: 12px;
+            border-radius: 4px;
+        }
+
+        /* Card Numérico (Top) */
+        .stat-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-top: 4px solid #0284C7;
+            border-radius: 12px 12px 6px 6px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.02);
+            margin-bottom: 12px;
+        }
+        .stat-card.orange {
+            border-top-color: #EA580C;
+        }
+        .stat-value {
+            font-size: 42px;
+            font-weight: 800;
+            color: #0F172A;
+            line-height: 1;
+        }
+        .stat-value.blue { color: #0284C7; }
+        .stat-value.orange { color: #EA580C; }
+        
+        .stat-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 8px;
+        }
+
+        /* Card Info Explicativo (Bottom) */
+        .info-card {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 20px;
+            height: 100%;
+            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.02);
+        }
+        .info-icon {
+            width: 38px;
+            height: 38px;
+            background-color: #E0F2FE;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+        .info-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #0F172A;
+            margin-bottom: 8px;
+        }
+        .info-desc {
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        /* Oculta marca d'água padrão do streamlit */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -65,7 +117,7 @@ st.markdown(f"""
 # SIDEBAR
 # ----------------------------------------------------
 st.sidebar.image("https://sbot.org.br/wp-content/uploads/2021/04/logo-sbot.png", width=180)
-st.sidebar.title("Configurações")
+st.sidebar.title("Painel de Controle")
 GEMINI_API_KEY = st.sidebar.text_input("Google AI Studio API Key", type="password")
 
 if GEMINI_API_KEY:
@@ -93,23 +145,17 @@ URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
 URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
 
-# ----------------------------------------------------
-# CABEÇALHO DO DASHBOARD
-# ----------------------------------------------------
 st.title("📊 Dashboard Executivo - Congresso SBOT 2026")
-st.caption("Painel Integrado ao iCongresso")
+st.caption("Acompanhamento estratégico em tempo real das inscrições e participantes")
 st.divider()
-
-# Variáveis globais para o Resumo dos Módulos
-qtd_pagas, qtd_cortesia, qtd_voucher, total_geral_congresso = 0, 0, 0, 0
-tot_palestrantes, aceito, pendente, rejeitado = 0, 0, 0, 0
-qtd_vendidas, qtd_efetivadas, qtd_nao_efetivadas = 0, 0, 0
 
 # ====================================================
 # SESSÃO 1: INSCRIÇÕES GERAIS (CONGRESSO)
 # ====================================================
-st.header("1. Inscrições Gerais (Congresso)")
+st.markdown('<div class="section-header">Sessão 1: Inscrições Gerais (Congresso)</div>', unsafe_allow_html=True)
 df_atividade = carregar_dados_icongresso(URL_ATIVIDADE)
+
+qtd_pagas, qtd_cortesia, total_geral_congresso = 0, 0, 0
 
 if df_atividade is not None and not df_atividade.empty:
     col_nome = [c for c in df_atividade.columns if any(k in c for k in ['nome', 'atividade', 'descri'])][0]
@@ -127,26 +173,59 @@ if df_atividade is not None and not df_atividade.empty:
 
     if not df_congresso_only.empty:
         qtd_pagas = extrair_val(df_congresso_only, 'qtd_inscrito')
-        qtd_cortesia = extrair_val(df_congresso_only, 'qtd_cortesia')
-        qtd_voucher = extrair_val(df_congresso_only, 'voucher')
+        qtd_cortesia = extrair_val(df_congresso_only, 'qtd_cortesia') + extrair_val(df_congresso_only, 'voucher')
         total_geral_congresso = extrair_val(df_congresso_only, 'qtd_total')
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Inscrições Pagas", f"{qtd_pagas:,}".replace(",", "."))
-    c2.metric("Inscrições Cortesia", f"{qtd_cortesia:,}".replace(",", "."))
-    c3.metric("Voucher Cortesia", f"{qtd_voucher:,}".replace(",", "."))
-    c4.metric("Total Geral (Congresso)", f"{total_geral_congresso:,}".replace(",", "."))
+c1, c2, c3 = st.columns(3)
 
-    with st.expander("📄 Ver detalhamento geral por atividades"):
-        st.dataframe(df_atividade, use_container_width=True)
+with c1:
+    st.markdown(f'''
+        <div class="stat-card">
+            <div class="stat-value">{qtd_pagas:,}</div>
+            <div class="stat-label">Inscrições Pagas</div>
+        </div>
+        <div class="info-card">
+            <div class="info-icon">💳</div>
+            <div class="info-title">Inscrições Confirmadas</div>
+            <div class="info-desc">Volume total de congressistas com pagamento confirmado diretamente no portal do evento.</div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+with c2:
+    st.markdown(f'''
+        <div class="stat-card">
+            <div class="stat-value blue">{qtd_cortesia:,}</div>
+            <div class="stat-label">Cortesias e Vouchers</div>
+        </div>
+        <div class="info-card">
+            <div class="info-icon">🎁</div>
+            <div class="info-title">Isenções Liberadas</div>
+            <div class="info-desc">Cortesias concedidas e vouchers ativados para convidados especiais e diretoria.</div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+with c3:
+    st.markdown(f'''
+        <div class="stat-card orange">
+            <div class="stat-value orange">{total_geral_congresso:,}</div>
+            <div class="stat-label">Total Geral (Congresso)</div>
+        </div>
+        <div class="info-card">
+            <div class="info-icon">📈</div>
+            <div class="info-title">Público do Congresso</div>
+            <div class="info-desc">Somatório total de médicos e inscritos cadastrados na atividade principal.</div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
 
 st.divider()
 
 # ====================================================
 # SESSÃO 2: PALESTRANTES
 # ====================================================
-st.header("2. Palestrantes")
+st.markdown('<div class="section-header">Sessão 2: Palestrantes</div>', unsafe_allow_html=True)
 df_palestrantes = carregar_dados_icongresso(URL_PALESTRANTES)
+
+tot_palestrantes, aceito, pendente, rejeitado = 0, 0, 0, 0
 
 if df_palestrantes is not None and not df_palestrantes.empty:
     col_status = [c for c in df_palestrantes.columns if 'status' in c or 'convite' in c][0]
@@ -161,28 +240,48 @@ if df_palestrantes is not None and not df_palestrantes.empty:
     aceito = pegar_qtd("Aceitou")
     pendente = pegar_qtd("Convite Enviado") + pegar_qtd("Cadastrado")
     rejeitado = pegar_qtd("Rejeitado")
-    
-    filtro_total = df_palestrantes[df_palestrantes[col_status].isna() | (df_palestrantes[col_status].astype(str) == 'None')]
-    if not filtro_total.empty:
-        tot_palestrantes = int(pd.to_numeric(filtro_total[col_qtd].values[0], errors='coerce'))
-    else:
-        tot_palestrantes = aceito + pendente + rejeitado
+    tot_palestrantes = aceito + pendente + rejeitado
 
-    p1, p2, p3, p4 = st.columns(4)
-    p1.metric("Total de Palestrantes", f"{tot_palestrantes:,}".replace(",", "."))
-    p2.metric("Convite Aceito", f"{aceito:,}".replace(",", "."))
-    p3.metric("Convite Pendente", f"{pendente:,}".replace(",", "."))
-    p4.metric("Convite Rejeitado", f"{rejeitado:,}".replace(",", "."))
+p1, p2, p3, p4 = st.columns(4)
 
-    with st.expander("📄 Ver tabela completa de status dos palestrantes"):
-        st.dataframe(df_palestrantes, use_container_width=True)
+with p1:
+    st.markdown(f'''
+        <div class="stat-card">
+            <div class="stat-value">{tot_palestrantes}</div>
+            <div class="stat-label">Total Convocado</div>
+        </div>
+    ''', unsafe_allow_html=True)
+
+with p2:
+    st.markdown(f'''
+        <div class="stat-card">
+            <div class="stat-value blue">{aceito}</div>
+            <div class="stat-label">Convites Aceitos</div>
+        </div>
+    ''', unsafe_allow_html=True)
+
+with p3:
+    st.markdown(f'''
+        <div class="stat-card orange">
+            <div class="stat-value orange">{pendente}</div>
+            <div class="stat-label">Convites Pendentes</div>
+        </div>
+    ''', unsafe_allow_html=True)
+
+with p4:
+    st.markdown(f'''
+        <div class="stat-card">
+            <div class="stat-value">{rejeitado}</div>
+            <div class="stat-label">Convites Rejeitados</div>
+        </div>
+    ''', unsafe_allow_html=True)
 
 st.divider()
 
 # ====================================================
-# SESSÃO 3: INSCRIÇÕES PATROCINADAS (CONVÊNIOS)
+# SESSÃO 3: INSCRIÇÕES PATROCINADAS
 # ====================================================
-st.header("3. Inscrições Patrocinadas")
+st.markdown('<div class="section-header">Sessão 3: Inscrições Patrocinadas</div>', unsafe_allow_html=True)
 df_patrocinadas = carregar_dados_icongresso(URL_PATROCINADOS)
 
 GRUPOS_EXCLUIR = [
@@ -197,6 +296,8 @@ GRUPOS_EXCLUIR = [
     "PALESTRANTES SBOT 2026"
 ]
 
+qtd_vendidas, qtd_efetivadas, qtd_nao_efetivadas = 0, 0, 0
+
 if df_patrocinadas is not None and not df_patrocinadas.empty:
     col_conv = [c for c in df_patrocinadas.columns if 'convenio' in c or 'empresa' in c or 'descri' in c][0]
     df_patroc_filtrado = df_patrocinadas[~df_patrocinadas[col_conv].astype(str).str.strip().isin(GRUPOS_EXCLUIR)]
@@ -209,51 +310,81 @@ if df_patrocinadas is not None and not df_patrocinadas.empty:
     qtd_efetivadas = int(pd.to_numeric(df_patroc_filtrado[col_conf], errors='coerce').fillna(0).sum())
     qtd_nao_efetivadas = int(pd.to_numeric(df_patroc_filtrado[col_preencher], errors='coerce').fillna(0).sum())
 
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Quantidade Vendida", f"{qtd_vendidas:,}".replace(",", "."))
-    m2.metric("Inscrições Efetivadas", f"{qtd_efetivadas:,}".replace(",", "."))
-    m3.metric("Inscrições NÃO Efetivadas", f"{qtd_nao_efetivadas:,}".replace(",", "."))
+m1, m2, m3 = st.columns(3)
 
-    with st.expander("📄 Ver detalhamento das inscrições patrocinadas"):
-        st.dataframe(df_patroc_filtrado, use_container_width=True)
+with m1:
+    st.markdown(f'''
+        <div class="stat-card">
+            <div class="stat-value">{qtd_vendidas:,}</div>
+            <div class="stat-label">Cotas Vendidas</div>
+        </div>
+        <div class="info-card">
+            <div class="info-icon">🤝</div>
+            <div class="info-title">Inscrições Vendidas</div>
+            <div class="info-desc">Volume total de cortesias/vouchers negociados nos pacotes de patrocínio do congresso.</div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+with m2:
+    st.markdown(f'''
+        <div class="stat-card">
+            <div class="stat-value blue">{qtd_efetivadas:,}</div>
+            <div class="stat-label">Efetivadas (Cadastradas)</div>
+        </div>
+        <div class="info-card">
+            <div class="info-icon">👤</div>
+            <div class="info-title">Efetivadas</div>
+            <div class="info-desc">Participantes que já utilizaram o código do patrocinador e concluíram seu cadastro.</div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+with m3:
+    st.markdown(f'''
+        <div class="stat-card orange">
+            <div class="stat-value orange">{qtd_nao_efetivadas:,}</div>
+            <div class="stat-label">Não Efetivadas (Saldo)</div>
+        </div>
+        <div class="info-card">
+            <div class="info-icon">🔄</div>
+            <div class="info-title">Não Efetivadas</div>
+            <div class="info-desc">Vouchers pendentes de utilização. Alerta gerado para cobrar o patrocinador antes do prazo final.</div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
 
 st.divider()
 
 # ====================================================
-# SESSÃO 4: RESUMO CONSOLIDADOR DOS MÓDULOS (NOVO)
+# SESSÃO 4: RESUMO CONSOLIDADOR DOS MÓDULOS
 # ====================================================
-st.header("4. Resumo Consolidado dos Módulos")
-st.write("Visão geral simplificada para acompanhamento rápido da diretoria:")
+st.markdown('<div class="section-header">Sessão 4: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-# Cálculo do Total Geral Geral de Inscritos (Congresso + Patrocinados Efetivados)
 total_participantes = total_geral_congresso + qtd_efetivadas
 
 resumo_data = {
-    "Módulo": [
+    "Módulo / Área": [
         "1. Inscrições Gerais", 
         "2. Palestrantes", 
         "3. Inscrições Patrocinadas", 
         "TOTAL CONSOLIDADO EVENTO"
     ],
     "Métrica Principal": [
-        f"{total_geral_congresso} Inscritos Totais ({qtd_pagas} Pagas)",
-        f"{tot_palestrantes} Total ({aceito} Convites Aceitos)",
-        f"{qtd_vendidas} Vagas Vendidas ({qtd_efetivadas} Efetivadas)",
-        f"{total_participantes} Participantes Confirmados"
+        f"{total_geral_congresso} Inscritos Totais",
+        f"{tot_palestrantes} Total Convocados",
+        f"{qtd_vendidas} Vagas Vendidas",
+        f"{total_participantes} Confirmados Gerais"
     ],
-    "Status / Pendência": [
-        f"{qtd_cortesia + qtd_voucher} CORTESIAS / VOUCHERS",
-        f"{pendente} PENDENTES DE RESPOSTA",
-        f"{qtd_nao_efetivadas} VAGAS A PREENCHER",
-        "STATUS EM TEMPO REAL"
+    "Status Operacional": [
+        f"{qtd_pagas} Pagas | {qtd_cortesia} Cortesias",
+        f"{aceito} Aceitos ({pendente} Pendentes)",
+        f"{qtd_efetivadas} Efetivadas ({qtd_nao_efetivadas} Saldo Pendente)",
+        "BASE INTEGRADA EM TEMPO REAL"
     ]
 }
 
-df_resumo = pd.DataFrame(resumo_data)
-st.table(df_resumo)
+st.table(pd.DataFrame(resumo_data))
 
 # ====================================================
-# AGENTE IA - GOOGLE AI STUDIO (GEMINI)
+# AGENTE IA
 # ====================================================
 st.divider()
 st.subheader("🤖 Diagnóstico de Inteligência Executiva")
@@ -262,6 +393,7 @@ if GEMINI_API_KEY:
     if st.button("✨ Gerar Análise Estratégica"):
         with st.spinner("Analisando métricas..."):
             model = genai.GenerativeModel('gemini-1.5-flash')
-            prompt = f"Gere um resumo executivo baseado em {total_participantes} participantes confirmados no Congresso SBOT 2026."
+            prompt = f"Gere um diagnóstico curto e executivo para a diretoria SBOT sobre: {total_participantes} participantes confirmados e {qtd_nao_efetivadas} vagas de patrocínio pendentes."
             response = model.generate_content(prompt)
             st.markdown(response.text)
+
