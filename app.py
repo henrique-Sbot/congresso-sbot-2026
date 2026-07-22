@@ -133,7 +133,8 @@ GEMINI_API_KEY = st.sidebar.text_input("Google AI Studio API Key", type="passwor
 
 if GEMINI_API_KEY:
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
+        if hasattr(genai, 'configure'):
+            genai.configure(api_key=GEMINI_API_KEY)
         st.sidebar.success("⚡ Gemini AI Conectado!")
     except Exception as e:
         st.sidebar.error("Erro ao configurar API Gemini.")
@@ -506,7 +507,6 @@ if GEMINI_API_KEY:
     if st.button("✨ Gerar Diagnóstico com Inteligência Artificial"):
         with st.spinner("Analisando padrões de inscrições, regionalização e patrocínios..."):
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
                 prompt = f"""
                 Você é o Diretor de Inteligência do Congresso SBOT Porto Alegre 2026.
                 Analise os seguintes dados consolidados e gere um resumo executivo com 3 ações estratégicas prioritárias:
@@ -519,14 +519,37 @@ if GEMINI_API_KEY:
                 
                 Forneça uma análise concisa, direta para o Presidente da SBOT, focada em alavancagem de receita e preenchimento de vagas.
                 """
-                response = model.generate_content(prompt)
                 
-                st.markdown(f'''
-                    <div class="ai-box">
-                        <h4 style="color: #0284C7; margin-bottom: 10px;">📋 Diagnóstico Estratégico do Gemini AI</h4>
-                        <div>{response.text}</div>
-                    </div>
-                ''', unsafe_allow_html=True)
+                resposta_texto = None
+                
+                # Tentativa 1: Tenta utilizar o SDK nativo se a versão for compatível
+                if hasattr(genai, 'GenerativeModel'):
+                    try:
+                        model = genai.GenerativeModel('gemini-1.5-flash')
+                        response = model.generate_content(prompt)
+                        resposta_texto = response.text
+                    except Exception:
+                        resposta_texto = None
+
+                # Tentativa 2: Fallback direto via API REST (funciona em qualquer ambiente)
+                if not resposta_texto:
+                    url_gemini = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+                    headers = {"Content-Type": "application/json"}
+                    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                    res = requests.post(url_gemini, json=payload, headers=headers, timeout=25)
+                    if res.status_code == 200:
+                        dados_res = res.json()
+                        resposta_texto = dados_res['candidates'][0]['content']['parts'][0]['text']
+                    else:
+                        st.error(f"Erro na requisição à API Gemini (Código {res.status_code}): {res.text}")
+                
+                if resposta_texto:
+                    st.markdown(f'''
+                        <div class="ai-box">
+                            <h4 style="color: #0284C7; margin-bottom: 10px;">📋 Diagnóstico Estratégico do Gemini AI</h4>
+                            <div>{resposta_texto}</div>
+                        </div>
+                    ''', unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Erro ao processar análise do Gemini: {e}")
 else:
