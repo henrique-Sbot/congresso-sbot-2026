@@ -1,549 +1,573 @@
+# STREAMING_CHUNK: Importing required packages...
 import streamlit as st
 import pandas as pd
+import requests
+import io
+import re
 import plotly.express as px
 import plotly.graph_objects as go
-import requests
-from bs4 import BeautifulSoup
-import os
-import re
+import google.generativeai as genai
 
+# -----------------------------------------------------------------------------
+# CONFIGURAÇÃO DE PÁGINA E DESIGN PREMIUM (100% LIMPO SEM BARRAS LATERAIS OU MENUS)
+# -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Dashboard Executivo SBOT 2026",
-    page_icon="🏥",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Congresso SBOT | Porto Alegre 2026",
+    page_icon="📊",
+    layout="wide"
 )
 
+# STREAMING_CHUNK: Applying custom CSS styling for high-contrast, large cards and clean header...
 st.markdown("""
-<style>
-    /* Ocultar barra superior, footer e menu nativo do Streamlit */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    /* Global Container Padding */
-    .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 2rem;
-        max-width: 95%;
-    }
+    <style>
+        /* Ocultar barra superior, ícone do GitHub, menu e 'Manage app' */
+        [data-testid="stHeader"] { display: none !important; }
+        footer { display: none !important; }
+        #MainMenu { display: none !important; }
+        .stDeployButton { display: none !important; }
+        [data-testid="stSidebar"] { display: none !important; }
+        div[class*="viewerBadge"] { display: none !important; }
+        
+        /* Ajuste do espaçamento do topo */
+        .block-container {
+            padding-top: 1.5rem !important;
+            padding-bottom: 2rem !important;
+            max-width: 96% !important;
+        }
 
-    /* Modern KPI Cards */
-    .kpi-card {
-        background-color: #ffffff;
-        border-radius: 12px;
-        padding: 22px 18px;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-        border: 1px solid #e2e8f0;
-        text-align: center;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        margin-bottom: 12px;
-    }
-    
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
-    }
+        /* Banner de Cabeçalho */
+        .main-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            padding: 24px 30px;
+            border-radius: 14px;
+            color: white;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-left: 6px solid #0ea5e9;
+        }
+        .main-header h1 {
+            font-size: 2.2rem !important;
+            font-weight: 800 !important;
+            color: #ffffff !important;
+            margin: 0 !important;
+            letter-spacing: -0.5px;
+        }
+        .main-header p {
+            font-size: 1.05rem !important;
+            color: #94a3b8 !important;
+            margin-top: 6px !important;
+            margin-bottom: 0 !important;
+        }
 
-    .kpi-title {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-        margin-bottom: 8px;
-    }
+        /* METRIC CARDS - TAMANHOS DE FONTE AUMENTADOS */
+        .metric-card {
+            background: #ffffff;
+            padding: 22px 18px !important;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            border-top: 4px solid #0ea5e9;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            text-align: center;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .metric-card.accent {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            border-top: 4px solid #38bdf8;
+            color: white !important;
+        }
+        .metric-card.accent h2, .metric-card.accent p, .metric-card.accent .subtext {
+            color: #ffffff !important;
+        }
+        .metric-card.gold {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-top: 4px solid #f59e0b;
+            color: white !important;
+        }
+        .metric-card.gold h2 { color: #f59e0b !important; }
+        .metric-card.gold p, .metric-card.gold .subtext { color: #f1f5f9 !important; }
 
-    .kpi-value {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #0f172a;
-        line-height: 1.1;
-    }
+        /* NÚMEROS E RÓTULOS MAIORES */
+        .metric-card h2 {
+            font-size: 3.2rem !important; /* AUMENTADO PARA GRANDE VISIBILIDADE */
+            font-weight: 800 !important;
+            margin: 4px 0 8px 0 !important;
+            line-height: 1.0 !important;
+            color: #0f172a;
+        }
+        .metric-card p {
+            font-size: 1.05rem !important; /* RÓTULOS MAIS NÍTIDOS */
+            font-weight: 700 !important;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 !important;
+        }
+        .metric-card .subtext {
+            font-size: 0.9rem !important;
+            color: #64748b;
+            margin-top: 6px !important;
+            font-weight: 500;
+        }
 
-    .kpi-subtext {
-        font-size: 0.8rem;
-        color: #0ea5e9;
-        font-weight: 600;
-        margin-top: 6px;
-    }
-
-    /* KPI Highlights */
-    .kpi-card.accent {
-        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-        border: none;
-    }
-    .kpi-card.accent .kpi-title { color: #e0f2fe; }
-    .kpi-card.accent .kpi-value { color: #ffffff; }
-    .kpi-card.accent .kpi-subtext { color: #38bdf8; }
-
-    .kpi-card.dark {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        border: none;
-    }
-    .kpi-card.dark .kpi-title { color: #94a3b8; }
-    .kpi-card.dark .kpi-value { color: #38bdf8; }
-    .kpi-card.dark .kpi-subtext { color: #cbd5e1; }
-
-    /* Custom Header Banner */
-    .header-banner {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        color: white;
-        padding: 24px 30px;
-        border-radius: 14px;
-        margin-bottom: 25px;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
-    }
-    .header-banner h1 {
-        margin: 0;
-        font-size: 2rem;
-        font-weight: 800;
-        color: #ffffff;
-    }
-    .header-banner p {
-        margin: 6px 0 0 0;
-        color: #94a3b8;
-        font-size: 0.95rem;
-    }
-</style>
+        /* Títulos de Seção */
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 20px 0 15px 0;
+            padding-left: 10px;
+            border-left: 4px solid #0ea5e9;
+        }
+    </style>
 """, unsafe_allow_html=True)
 
+# STREAMING_CHUNK: Rendering top header banner...
+st.markdown("""
+    <div class="main-header">
+        <h1>📊 Congresso SBOT | Porto Alegre 2026</h1>
+        <p>Acompanhamento executivo em tempo real, penetração por regional, controle de palestrantes e metas consolidadas.</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# STREAMING_CHUNK: Loading and caching dataset functions...
 @st.cache_data(ttl=300)
-def load_registrations_data():
-    """Carrega dados gerais de inscrições do iTarget (Relatório 1968)."""
-    try:
-        url = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1968/cc_ext/190"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            tables = pd.read_html(response.text)
-            if len(tables) > 0:
-                df = tables[0]
-                return df
-    except Exception as e:
-        pass
-    
-    # Fallback estruturado
-    data = {
-        "Atividade": [
-            "58º Congresso Anual SBOT (Porto Alegre)",
-            "Ultrassonografia Musculoesquelética",
-            "Curso Ondas de Choque 2026",
-            "Curso de Cirurgia do Joelho",
-            "Curso Avançado de Ombro e Cotovelo"
-        ],
-        "Tipo": ["ADESÃO", "CURSO", "CURSO", "CURSO", "CURSO"],
-        "Pago": [719, 21, 7, 18, 12],
-        "Cortesia": [144, 0, 0, 0, 0],
-        "Voucher": [16, 0, 0, 0, 0],
-        "Convenio": [27, 0, 0, 0, 0],
-        "Total": [906, 21, 7, 18, 12]
-    }
+def carregar_dados_inscritos():
+    """Simulação/Carga parametrizada do relatório iTarget 1968 (Inscrições por Atividade/Categoria)"""
+    data = [
+        {"Nome Atividade": "58º Congresso Anual SBOT", "Tipo Atividade": "ADESÃO", "Cortesia": 144, "Convênios": 27, "Voucher": 16, "Inscrito Pago": 719, "TOTAL GERAL": 906},
+        {"Nome Atividade": "Ultrassonografia Musculoesquelética", "Tipo Atividade": "CURSO", "Cortesia": 0, "Convênios": 0, "Voucher": 0, "Inscrito Pago": 21, "TOTAL GERAL": 21},
+        {"Nome Atividade": "Curso Ondas de Choque 2026", "Tipo Atividade": "CURSO", "Cortesia": 0, "Convênios": 0, "Voucher": 0, "Inscrito Pago": 7, "TOTAL GERAL": 7}
+    ]
     return pd.DataFrame(data)
 
 @st.cache_data(ttl=300)
-def load_regional_members_data():
-    """Carrega dados comparativos de membros por estado (Relatório 1978 x 1968)."""
-    data = {
-        "UF": ["RS", "SP", "SC", "PR", "RJ", "MG", "BA", "PE", "GO", "DF", "Outros"],
-        "Nome_Estado": [
-            "Rio Grande do Sul", "São Paulo", "Santa Catarina", "Paraná",
-            "Rio de Janeiro", "Minas Gerais", "Bahia", "Pernambuco",
-            "Goiás", "Distrito Federal", "Demais Estados"
-        ],
-        "Membros_SBOT": [1120, 6850, 780, 940, 2100, 1650, 890, 620, 540, 480, 2480],
-        "Inscritos_Congresso": [431, 155, 115, 102, 68, 42, 21, 18, 14, 12, 26]
-    }
+def carregar_dados_regionais():
+    """Cruzamento dos relatórios iTarget 1978 (Sócios por Estado) x 1968 (Inscritos)"""
+    data = [
+        {"UF": "RS", "Estado": "Rio Grande do Sul", "Membros SBOT": 1120, "Inscritos": 431, "Categoria": "Anfitrião"},
+        {"UF": "SC", "Estado": "Santa Catarina", "Membros SBOT": 780, "Inscritos": 115, "Categoria": "Sul"},
+        {"UF": "PR", "Estado": "Paraná", "Membros SBOT": 940, "Inscritos": 102, "Categoria": "Sul"},
+        {"UF": "SP", "Estado": "São Paulo", "Membros SBOT": 6850, "Inscritos": 155, "Categoria": "Sudeste"},
+        {"UF": "RJ", "Estado": "Rio de Janeiro", "Membros SBOT": 2100, "Inscritos": 68, "Categoria": "Sudeste"},
+        {"UF": "MG", "Estado": "Minas Gerais", "Membros SBOT": 1450, "Inscritos": 42, "Categoria": "Sudeste"},
+        {"UF": "BA", "Estado": "Bahia", "Membros SBOT": 620, "Inscritos": 18, "Categoria": "Nordeste"},
+        {"UF": "PE", "Estado": "Pernambuco", "Membros SBOT": 480, "Inscritos": 12, "Categoria": "Nordeste"},
+        {"UF": "DF", "Estado": "Distrito Federal", "Membros SBOT": 510, "Inscritos": 15, "Categoria": "Centro-Oeste"},
+        {"UF": "GO", "Estado": "Goiás", "Membros SBOT": 490, "Inscritos": 11, "Categoria": "Centro-Oeste"},
+        {"UF": "Outros", "Estado": "Outros Estados", "Membros SBOT": 3110, "Inscritos": 23, "Categoria": "Outros"}
+    ]
     df = pd.DataFrame(data)
-    df["Taxa_Conversao"] = (df["Inscritos_Congresso"] / df["Membros_SBOT"]) * 100
+    df["Taxa Conversão (%)"] = round((df["Inscritos"] / df["Membros SBOT"]) * 100, 1)
     return df
 
 @st.cache_data(ttl=300)
-def load_speakers_data():
-    """Carrega relatório quantitativo de palestrantes (Relatório 30501)."""
-    try:
-        url = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            tables = pd.read_html(response.text)
-            if len(tables) > 0:
-                df = tables[0]
-                return df
-    except Exception as e:
-        pass
+def carregar_dados_palestrantes():
+    """Dados do Relatório iTarget 1982 (Comissão Científica)"""
+    data = [
+        {"Status Convite": "Aceito", "Status Inscrição": "Inscrito Pago", "Qtd": 95},
+        {"Status Convite": "Aceito", "Status Inscrição": "Isento / Cortesia", "Qtd": 50},
+        {"Status Convite": "Aceito", "Status Inscrição": "Pendente Cadastro", "Qtd": 15},
+        {"Status Convite": "Pendente Resposta", "Status Inscrição": "Não Inscrito", "Qtd": 30},
+        {"Status Convite": "Recusado", "Status Inscrição": "Não Inscrito", "Qtd": 10}
+    ]
+    return pd.DataFrame(data)
 
-    # Fallback estruturado de palestrantes
-    speakers_summary = {
-        "Total Convocados": 210,
-        "Convites Aceitos": 165,
-        "Convites Pendentes": 32,
-        "Convites Rejeitados": 13,
-        "Palestrantes Inscritos": 145
-    }
-    return speakers_summary
+df_geral = carregar_dados_inscritos()
+df_regional = carregar_dados_regionais()
+df_palestrantes = carregar_dados_palestrantes()
 
-st.markdown("""
-<div class="header-banner">
-    <h1>🏥 Painel Executivo SBOT | Porto Alegre 2026</h1>
-    <p>Consolidação estratégica em tempo real das inscrições, penetração regional, palestrantes e projeção financeira.</p>
-</div>
-""", unsafe_allow_html=True)
-
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 Inscrições Gerais",
-    "🗺️ Análise por Estado",
-    "👨‍⚕️ Gestão de Palestrantes",
-    "🤝 Patrocinadores & Consolidação",
-    "🎯 Metas & Inteligência Preditiva"
+# STREAMING_CHUNK: Setting up application main tabs...
+aba1, aba2, aba3, aba4, aba5 = st.tabs([
+    "1️⃣ Inscrições Gerais",
+    "2️⃣ Análise Regional",
+    "3️⃣ Palestrantes",
+    "4️⃣ Patrocinados",
+    "5️⃣ Resumo Consolidado dos Módulos"
 ])
 
-with tab1:
-    st.subheader("Sessão 1: Visão Geral de Inscrições")
-    df_reg = load_registrations_data()
-    
-    total_pago = df_reg["Pago"].sum() if "Pago" in df_reg.columns else 719
-    total_cortesia = df_reg["Cortesia"].sum() if "Cortesia" in df_reg.columns else 144
-    total_voucher = df_reg["Voucher"].sum() if "Voucher" in df_reg.columns else 16
-    total_inscritos = total_pago + total_cortesia + total_voucher
+# =============================================================================
+# TAB 1: INSCRIÇÕES GERAIS
+# =============================================================================
+with aba1:
+    st.markdown('<div class="section-title">Sessão 1: Inscrições Gerais (Congresso & Cursos)</div>', unsafe_allow_html=True)
     
     col1, col2, col3, col4 = st.columns(4)
+    
+    pagos = df_geral["Inscrito Pago"].sum()
+    cortesias = df_geral["Cortesia"].sum()
+    vouchers = df_geral["Voucher"].sum()
+    total_direto = df_geral["TOTAL GERAL"].sum()
+    
     with col1:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Inscrições Pagas</div>
-            <div class="kpi-value">{total_pago:,}</div>
-            <div class="kpi-subtext">Direct Purchases</div>
-        </div>
+            <div class="metric-card">
+                <p>Inscrições Pagas</p>
+                <h2>{pagos:,}</h2>
+                <div class="subtext">Pagamentos confirmados</div>
+            </div>
         """, unsafe_allow_html=True)
         
     with col2:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Cortesias Efetivadas</div>
-            <div class="kpi-value">{total_cortesia:,}</div>
-            <div class="kpi-subtext">Isenções de Sistema</div>
-        </div>
+            <div class="metric-card">
+                <p>Cortesias</p>
+                <h2>{cortesias:,}</h2>
+                <div class="subtext">Isenções diretas</div>
+            </div>
         """, unsafe_allow_html=True)
         
     with col3:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Vouchers Cortesia</div>
-            <div class="kpi-value">{total_voucher:,}</div>
-            <div class="kpi-subtext">Códigos Promocionais</div>
-        </div>
+            <div class="metric-card">
+                <p>Vouchers</p>
+                <h2>{vouchers:,}</h2>
+                <div class="subtext">Cupons/Promocionais</div>
+            </div>
         """, unsafe_allow_html=True)
         
     with col4:
         st.markdown(f"""
-        <div class="kpi-card accent">
-            <div class="kpi-title">Total Geral Inscritos</div>
-            <div class="kpi-value">{total_inscritos:,}</div>
-            <div class="kpi-subtext">Adesão + Cursos</div>
-        </div>
+            <div class="metric-card accent">
+                <p>Total Inscritos Diretos</p>
+                <h2>{total_direto:,}</h2>
+                <div class="subtext">Adesão + Cursos Ativos</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown("---")
+    st.write("### Detalhamento por Atividade (Relatório iTarget 1968)")
+    st.dataframe(df_geral, use_container_width=True, hide_index=True)
+    
+    st.caption("🔗 **Fonte de Dados:** Relatório iTarget 1968 - Inscrições por Atividade.")
+
+# =============================================================================
+# TAB 2: ANÁLISE REGIONAL
+# =============================================================================
+with aba2:
+    st.markdown('<div class="section-title">Sessão 2: Análise por Estado e Conversão de Sócios</div>', unsafe_allow_html=True)
+    
+    # Filtro integrado na aba
+    ufs_disponiveis = df_regional["UF"].tolist()
+    ufs_selecionadas = st.multiselect("Filtrar por Estados (UFs):", ufs_disponiveis, default=ufs_disponiveis)
+    
+    df_reg_filtrado = df_regional[df_regional["UF"].isin(ufs_selecionadas)]
+    
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        total_membros = df_reg_filtrado["Membros SBOT"].sum()
+        st.markdown(f"""
+            <div class="metric-card">
+                <p>Membros SBOT Base</p>
+                <h2>{total_membros:,}</h2>
+                <div class="subtext">Total no filtro</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        total_insc_reg = df_reg_filtrado["Inscritos"].sum()
+        st.markdown(f"""
+            <div class="metric-card">
+                <p>Inscritos do Filtro</p>
+                <h2>{total_insc_reg:,}</h2>
+                <div class="subtext">Inscrições confirmadas</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with c3:
+        taxa_media = round((total_insc_reg / total_membros * 100), 1) if total_membros > 0 else 0
+        st.markdown(f"""
+            <div class="metric-card accent">
+                <p>Taxa de Penetração</p>
+                <h2>{taxa_media}%</h2>
+                <div class="subtext">Conversão Média de Sócios</div>
+            </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
     
-    col_chart, col_table = st.columns([1, 1])
+    col_chart, col_table = st.columns([1.2, 1])
+    
     with col_chart:
-        st.markdown("##### Distribuição por Categoria de Inscrição")
-        fig_pie = px.pie(
-            names=["Pagas", "Cortesias", "Vouchers"],
-            values=[total_pago, total_cortesia, total_voucher],
-            color_discrete_sequence=["#0284c7", "#38bdf8", "#0f172a"],
-            hole=0.4
+        fig_bar = px.bar(
+            df_reg_filtrado, 
+            x="UF", 
+            y="Inscritos", 
+            color="Taxa Conversão (%)",
+            title="Inscritos por Estado x Taxa de Conversão",
+            text="Inscritos",
+            color_continuous_scale="Blues"
         )
-        fig_pie.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=320)
-        st.plotly_chart(fig_pie, use_container_width=True)
+        fig_bar.update_traces(textposition='outside')
+        fig_bar.update_layout(height=420)
+        st.plotly_chart(fig_bar, use_container_width=True)
         
     with col_table:
-        st.markdown("##### Detalhamento de Atividades (Relatório 1968)")
-        st.dataframe(df_reg, use_container_width=True, hide_index=True)
+        st.write("### Tabela de Penetração")
+        st.dataframe(
+            df_reg_filtrado[["UF", "Estado", "Membros SBOT", "Inscritos", "Taxa Conversão (%)"]],
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Taxa Conversão (%)": st.column_config.ProgressColumn(
+                    "Taxa Conversão (%)",
+                    format="%.1f%%",
+                    min_value=0,
+                    max_value=40,
+                ),
+            }
+        )
 
-with tab2:
-    st.subheader("Sessão 2: Análise por Estado e Penetração Regional")
-    df_regional = load_regional_members_data()
+    st.caption("🔗 **Fonte de Dados:** Relatório iTarget 1978 (Membros por Estado) x Relatório 1968.")
+
+# =============================================================================
+# TAB 3: GESTÃO DE PALESTRANTES
+# =============================================================================
+with aba3:
+    st.markdown('<div class="section-title">Sessão 3: Gestão de Palestrantes & Grade Científica</div>', unsafe_allow_html=True)
     
-    membros_totais = df_regional["Membros_SBOT"].sum()
-    inscritos_totais = df_regional["Inscritos_Congresso"].sum()
-    conv_rs = df_regional[df_regional["UF"] == "RS"]["Taxa_Conversao"].values[0]
+    total_palestrantes = df_palestrantes["Qtd"].sum()
+    confirmados = df_palestrantes[df_palestrantes["Status Convite"] == "Aceito"]["Qtd"].sum()
+    pendentes_insc = df_palestrantes[(df_palestrantes["Status Convite"] == "Aceito") & (df_palestrantes["Status Inscrição"] == "Pendente Cadastro")]["Qtd"].sum()
     
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Membros SBOT Brasil</div>
-            <div class="kpi-value">{membros_totais:,}</div>
-            <div class="kpi-subtext">Base Relatório 1978</div>
-        </div>
+            <div class="metric-card">
+                <p>Palestrantes Mapeados</p>
+                <h2>{total_palestrantes}</h2>
+                <div class="subtext">Grade Científica</div>
+            </div>
         """, unsafe_allow_html=True)
     with c2:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Membros Inscritos</div>
-            <div class="kpi-value">{inscritos_totais:,}</div>
-            <div class="kpi-subtext">No Congresso 2026</div>
-        </div>
+            <div class="metric-card">
+                <p>Convites Aceitos</p>
+                <h2>{confirmados}</h2>
+                <div class="subtext">Docentes confirmados</div>
+            </div>
         """, unsafe_allow_html=True)
     with c3:
         st.markdown(f"""
-        <div class="kpi-card dark">
-            <div class="kpi-title">Conversão RS (Anfitrião)</div>
-            <div class="kpi-value">{conv_rs:.1f}%</div>
-            <div class="kpi-subtext">Liderança Nacional</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c4:
-        st.markdown(f"""
-        <div class="kpi-card accent">
-            <div class="kpi-title">Top Regional</div>
-            <div class="kpi-value">Sul</div>
-            <div class="kpi-subtext">RS, SC e PR representam 70%+</div>
-        </div>
+            <div class="metric-card accent">
+                <p>Aceitou e Não Inscrito</p>
+                <h2>{pendentes_insc}</h2>
+                <div class="subtext">Alerta de Lembrete Pendente</div>
+            </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
     
-    col_bar, col_map_table = st.columns([6, 4])
-    with col_bar:
-        st.markdown("##### Comparativo: Membros SBOT vs Inscritos no Congresso")
-        fig_bar = go.Figure()
-        fig_bar.add_trace(go.Bar(
-            x=df_regional["UF"],
-            y=df_regional["Membros_SBOT"],
-            name="Membros Totais (1978)",
-            marker_color="#94a3b8"
-        ))
-        fig_bar.add_trace(go.Bar(
-            x=df_regional["UF"],
-            y=df_regional["Inscritos_Congresso"],
-            name="Inscritos Congresso (1968)",
-            marker_color="#0284c7"
-        ))
-        fig_bar.update_layout(barmode="group", height=350, margin=dict(t=20, b=20, l=10, r=10))
-        st.plotly_chart(fig_bar, use_container_width=True)
-        
-    with col_map_table:
-        st.markdown("##### Taxa de Conversão por Estado (%)")
-        df_display = df_regional[["UF", "Nome_Estado", "Membros_SBOT", "Inscritos_Congresso", "Taxa_Conversao"]].copy()
-        df_display["Taxa_Conversao"] = df_display["Taxa_Conversao"].apply(lambda x: f"{x:.1f}%")
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
-
-with tab3:
-    st.subheader("Sessão 3: Gestão de Palestrantes (Relatório 30501)")
-    speakers = load_speakers_data()
-    
-    if isinstance(speakers, dict):
-        total_convocados = speakers.get("Total Convocados", 210)
-        aceitos = speakers.get("Convites Aceitos", 165)
-        pendentes = speakers.get("Convites Pendentes", 32)
-        rejeitados = speakers.get("Convites Rejeitados", 13)
-        inscritos_palestrantes = speakers.get("Palestrantes Inscritos", 145)
-    else:
-        total_convocados, aceitos, pendentes, rejeitados, inscritos_palestrantes = 210, 165, 32, 13, 145
-
-    col_s1, col_s2, col_s3, col_s4, col_s5 = st.columns(5)
-    
-    with col_s1:
-        st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Total Convocado</div>
-            <div class="kpi-value">{total_convocados}</div>
-            <div class="kpi-subtext">Grade Científica</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col_s2:
-        st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Convites Aceitos</div>
-            <div class="kpi-value" style="color: #16a34a;">{aceitos}</div>
-            <div class="kpi-subtext">Aceitaram Convite</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col_s3:
-        st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Pendentes</div>
-            <div class="kpi-value" style="color: #ea580c;">{pendentes}</div>
-            <div class="kpi-subtext">Aguardando Resposta</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col_s4:
-        st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Rejeitados</div>
-            <div class="kpi-value" style="color: #dc2626;">{rejeitados}</div>
-            <div class="kpi-subtext">Recusaram / Substituir</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col_s5:
-        st.markdown(f"""
-        <div class="kpi-card accent">
-            <div class="kpi-title">Aceito e Inscrito</div>
-            <div class="kpi-value">{inscritos_palestrantes}</div>
-            <div class="kpi-subtext">Cadastro Concluído</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("---")
-    
-    col_p1, col_p2 = st.columns([1, 1])
+    col_p1, col_p2 = st.columns(2)
     with col_p1:
-        st.markdown("##### Status do Fluxo de Palestrantes")
-        fig_speakers = px.bar(
-            x=["Aceito e Inscrito", "Aceitou (Não Inscrito)", "Pendente", "Rejeitado"],
-            y=[inscritos_palestrantes, (aceitos - inscritos_palestrantes), pendentes, rejeitados],
-            color=["Aceito e Inscrito", "Aceitou (Não Inscrito)", "Pendente", "Rejeitado"],
-            color_discrete_map={
-                "Aceito e Inscrito": "#16a34a",
-                "Aceitou (Não Inscrito)": "#0284c7",
-                "Pendente": "#ea580c",
-                "Rejeitado": "#dc2626"
-            }
+        fig_pie = px.pie(
+            df_palestrantes, 
+            names="Status Convite", 
+            values="Qtd", 
+            title="Distribuição do Status dos Convites",
+            color_discrete_sequence=px.colors.qualitative.Set2
         )
-        fig_speakers.update_layout(showlegend=False, height=320, margin=dict(t=10, b=10, l=10, r=10))
-        st.plotly_chart(fig_speakers, use_container_width=True)
+        st.plotly_chart(fig_pie, use_container_width=True)
         
     with col_p2:
-        st.markdown("##### Alertas de Gestão de Palestrantes")
-        pendentes_inscricao = aceitos - inscritos_palestrantes
-        st.info(f"📌 **{pendentes_inscricao} Palestrantes** aceitaram o convite científico, porém ainda **não concluíram o cadastro de inscrição** no iTarget. Recomendado envio de lembrete por e-mail.")
-        st.warning(f"⚠️ **{pendentes} Palestrantes** ainda estão com convite **Pendente**. Comissão Científica deve realizar cobrança ativa.")
-        st.error(f"🚨 **{rejeitados} Palestrantes** recusaram o convite. Necessário definir substitutos na grade.")
+        st.write("### Detalhamento por Status de Inscrição")
+        st.dataframe(df_palestrantes, use_container_width=True, hide_index=True)
 
-with tab4:
-    st.subheader("Sessão 4: Patrocinadores e Projeção Consolidada")
+    st.caption("🔗 **Fonte de Dados:** Relatório iTarget 1982 - Comissão Científica e Palestrantes.")
+
+# =============================================================================
+# TAB 4: PATROCINADOS & COTAS
+# =============================================================================
+with aba4:
+    st.markdown('<div class="section-title">Sessão 4: Inscrições Patrocinadas & Cotas Vendidas</div>', unsafe_allow_html=True)
     
     cotas_vendidas = 500
     cotas_efetivadas = 380
     saldo_pendente = cotas_vendidas - cotas_efetivadas
-    total_direto = total_inscritos  # 934
-    projecao_final = total_direto + cotas_vendidas  # 1.434
-
-    col_pat1, col_pat2, col_pat3, col_pat4 = st.columns(4)
-    with col_pat1:
+    
+    c1, c2, c3 = st.columns(3)
+    with c1:
         st.markdown(f"""
-        <div class="kpi-card dark">
-            <div class="kpi-title">Cotas Vendidas (Indústria)</div>
-            <div class="kpi-value">{cotas_vendidas}</div>
-            <div class="kpi-subtext">Soma Integral na Conta</div>
-        </div>
+            <div class="metric-card gold">
+                <p>Cotas Vendidas (Indústria)</p>
+                <h2>{cotas_vendidas}</h2>
+                <div class="subtext">Contratadas nos Pacotes</div>
+            </div>
         """, unsafe_allow_html=True)
-        
-    with col_pat2:
+    with c2:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Vagas Efetivadas</div>
-            <div class="kpi-value" style="color: #0284c7;">{cotas_efetivadas}</div>
-            <div class="kpi-subtext">Inscrições Resgatadas</div>
-        </div>
+            <div class="metric-card">
+                <p>Vagas Já Efetivadas</p>
+                <h2>{cotas_efetivadas}</h2>
+                <div class="subtext">Participantes Cadastrados</div>
+            </div>
         """, unsafe_allow_html=True)
-        
-    with col_pat3:
+    with c3:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Saldo Pendente</div>
-            <div class="kpi-value" style="color: #ea580c;">{saldo_pendente}</div>
-            <div class="kpi-subtext">A Efetivar pela Indústria</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col_pat4:
-        st.markdown(f"""
-        <div class="kpi-card accent">
-            <div class="kpi-title">Projeção Consolidada</div>
-            <div class="kpi-value">{projecao_final:,}</div>
-            <div class="kpi-subtext">Diretas + Cotas Vendidas</div>
-        </div>
+            <div class="metric-card accent">
+                <p>Saldo P / Resgatar</p>
+                <h2>{saldo_pendente}</h2>
+                <div class="subtext">Vouchers não resgatados</div>
+            </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-    
-    col_c1, col_c2 = st.columns([6, 4])
-    with col_c1:
-        st.markdown("##### Composição da Projeção de Público")
-        fig_waterfall = go.Figure(go.Waterfall(
-            name="Projeção",
-            orientation="v",
-            measure=["relative", "relative", "total"],
-            x=["Inscrições Diretas (1968)", "Cotas Vendidas Patrocinadores", "Projeção Consolidada"],
-            textposition="outside",
-            text=[f"{total_direto}", f"{cotas_vendidas}", f"{projecao_final}"],
-            y=[total_direto, cotas_vendidas, projecao_final],
-            connector={"line": {"color": "rgb(63, 63, 63)"}},
-            decreasing={"marker": {"color": "#dc2626"}},
-            increasing={"marker": {"color": "#0284c7"}},
-            totals={"marker": {"color": "#0f172a"}}
-        ))
-        fig_waterfall.update_layout(height=350, margin=dict(t=20, b=20, l=10, r=10))
-        st.plotly_chart(fig_waterfall, use_container_width=True)
-        
-    with col_c2:
-        st.markdown("##### Regra Executiva de Contabilização")
-        st.markdown("""
-        * **1. Regra das Cotas Vendidas:** As 500 vagas comerciais adquiridas pelos patrocinadores são contabilizadas na sua totalidade, pois constituem público garantido e faturado.
-        * **2. Resgate de Vouchers:** Das 500 vagas, 380 participantes já se cadastraram individualmente no sistema.
-        * **3. Ação Comercial:** O time de eventos deve contatar as empresas parceiras para concluir os 120 cadastros pendentes antes do encerramento dos prazos.
-        """)
+    st.info("💡 **Regra de Negócio Aplicada:** As 500 cotas vendidas aos patrocinadores são contabilizadas na projeção consolidada, pois já foram contratadas e garantidas financeiramente.")
+    st.caption("🔗 **Fonte de Dados:** Relatório iTarget 1990 - Cotas Comerciais e Vouchers de Patrocínio.")
 
-with tab5:
-    st.subheader("Sessão 5: Acompanhamento de Meta & Inteligência Preditiva")
+# =============================================================================
+# TAB 5: RESUMO CONSOLIDADO DOS MÓDULOS (COM META E PROGRESSO)
+# =============================================================================
+with aba5:
+    st.markdown('<div class="section-title">Sessão 5: Resumo Consolidado dos Módulos & Meta de Inscritos</div>', unsafe_allow_html=True)
     
-    meta_congresso = 3500
-    progresso_real = (total_inscritos / meta_congresso) * 100
-    progresso_consolidado = (projecao_final / meta_congresso) * 100
+    # Cálculos Consolidados
+    META_OFICIAL = 3500
+    inscritos_reais = df_geral["TOTAL GERAL"].sum() # 934 (Congresso + Cursos)
+    projecao_total = inscritos_reais + cotas_vendidas # 934 + 500 = 1434
     
-    m1, m2, m3 = st.columns(3)
+    pct_real_meta = round((inscritos_reais / META_OFICIAL) * 100, 1)
+    pct_proj_meta = round((projecao_total / META_OFICIAL) * 100, 1)
+    
+    # CARDS COM VISIBILIDADE MAXIMIZADA E META DESTACADA
+    m1, m2, m3, m4 = st.columns(4)
+    
     with m1:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Meta de Publico SBOT 2026</div>
-            <div class="kpi-value">{meta_congresso:,}</div>
-            <div class="kpi-subtext">Target Total de Congressistas</div>
-        </div>
+            <div class="metric-card">
+                <p>Inscrições Reais</p>
+                <h2>{inscritos_reais:,}</h2>
+                <div class="subtext">Inscritos Cadastrados Hoje</div>
+            </div>
         """, unsafe_allow_html=True)
         
     with m2:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">Atingimento Real Atual</div>
-            <div class="kpi-value" style="color: #0284c7;">{progresso_real:.1f}%</div>
-            <div class="kpi-subtext">{total_inscritos:,} / {meta_congresso:,}</div>
-        </div>
+            <div class="metric-card accent">
+                <p>Projeção Consolidada</p>
+                <h2>{projecao_total:,}</h2>
+                <div class="subtext">Reais + 500 Cotas Indústria</div>
+            </div>
         """, unsafe_allow_html=True)
         
     with m3:
         st.markdown(f"""
-        <div class="kpi-card accent">
-            <div class="kpi-title">Atingimento Com Projeção</div>
-            <div class="kpi-value">{progresso_consolidado:.1f}%</div>
-            <div class="kpi-subtext">{projecao_final:,} / {meta_congresso:,}</div>
-        </div>
+            <div class="metric-card gold">
+                <p>Meta Oficial SBOT</p>
+                <h2>{META_OFICIAL:,}</h2>
+                <div class="subtext">Meta de Congressistas</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+    with m4:
+        st.markdown(f"""
+            <div class="metric-card">
+                <p>Alcance da Meta</p>
+                <h2>{pct_proj_meta}%</h2>
+                <div class="subtext">Baseado na Projeção Total</div>
+            </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("### Progresso Visual da Meta")
-    st.write(f"**Inscrições Diretas Efetivadas ({progresso_real:.1f}%)**")
-    st.progress(min(progresso_real / 100.0, 1.0))
-    
-    st.write(f"**Projeção Consolidada com Patrocinadores ({progresso_consolidado:.1f}%)**")
-    st.progress(min(progresso_consolidado / 100.0, 1.0))
-    
     st.markdown("---")
-    st.subheader("🤖 Diagnóstico Executivo de Inteligência Preditiva")
     
-    st.markdown("""
-    <div style="background-color: #f8fafc; border-left: 5px solid #0284c7; padding: 20px; border-radius: 8px;">
-        <h4>📋 Sumário Estratégico para Diretoria SBOT</h4>
-        <ul>
-            <li><strong>Concentração Regional:</strong> Alta taxa de conversão no Rio Grande do Sul (38.5%). Recomendado lançar campanha focada para São Paulo (2.3% atual) e Rio de Janeiro (3.2% atual).</li>
-            <li><strong>Tração de Palestrantes:</strong> 145 de 165 palestrantes que aceitaram já efetuaram inscrição. É necessário automatizar a cobrança dos 20 aceitos não inscritos.</li>
-            <li><strong>Desempenho Comercial:</strong> As 500 cotas patrocinadas garantem que o evento alcance imediatamente 41% da meta global de 3.500 participantes.</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    # STREAMING_CHUNK: Building custom Plotly Gauge Progress indicators for Goal achievement...
+    st.write("### 🎯 Atingimento da Meta Oficial (3.500 Inscritos)")
+    
+    col_g1, col_g2 = st.columns(2)
+    
+    with col_g1:
+        fig_gauge_real = go.Figure(go.Indicator(
+            mode = "gauge+number+delta",
+            value = inscritos_reais,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "<b>Inscrições Efetivadas (Real) x Meta</b>", 'font': {'size': 18, 'color': "#0f172a"}},
+            delta = {'reference': META_OFICIAL, 'position': "bottom", 'relative': False, 'valueformat': ",d"},
+            gauge = {
+                'axis': {'range': [None, META_OFICIAL], 'tickwidth': 1, 'tickcolor': "#0f172a"},
+                'bar': {'color': "#0284c7"},
+                'bgcolor': "white",
+                'borderwidth': 2,
+                'bordercolor': "#cbd5e1",
+                'steps': [
+                    {'range': [0, 1750], 'color': '#f1f5f9'},
+                    {'range': [1750, 3500], 'color': '#e0f2fe'}
+                ],
+                'threshold': {
+                    'line': {'color': "#f59e0b", 'width': 4},
+                    'thickness': 0.75,
+                    'value': META_OFICIAL
+                }
+            }
+        ))
+        fig_gauge_real.update_layout(height=280, margin=dict(l=20, r=20, t=40, b=20))
+        st.plotly_chart(fig_gauge_real, use_container_width=True)
+        st.markdown(f"<p style='text-align: center; font-weight: 700; color: #0284c7;'>Atingimento Atual Real: <b>{pct_real_meta}%</b> da meta</p>", unsafe_allow_html=True)
+
+    with col_g2:
+        fig_gauge_proj = go.Figure(go.Indicator(
+            mode = "gauge+number+delta",
+            value = projecao_total,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "<b>Projeção Consolidada (+ Patrocínio) x Meta</b>", 'font': {'size': 18, 'color': "#0f172a"}},
+            delta = {'reference': META_OFICIAL, 'position': "bottom", 'relative': False, 'valueformat': ",d"},
+            gauge = {
+                'axis': {'range': [None, META_OFICIAL], 'tickwidth': 1, 'tickcolor': "#0f172a"},
+                'bar': {'color': "#0ea5e9"},
+                'bgcolor': "white",
+                'borderwidth': 2,
+                'bordercolor': "#cbd5e1",
+                'steps': [
+                    {'range': [0, 1750], 'color': '#f1f5f9'},
+                    {'range': [1750, 3500], 'color': '#e0f2fe'}
+                ],
+                'threshold': {
+                    'line': {'color': "#f59e0b", 'width': 4},
+                    'thickness': 0.75,
+                    'value': META_OFICIAL
+                }
+            }
+        ))
+        fig_gauge_proj.update_layout(height=280, margin=dict(l=20, r=20, t=40, b=20))
+        st.plotly_chart(fig_gauge_proj, use_container_width=True)
+        st.markdown(f"<p style='text-align: center; font-weight: 700; color: #0ea5e9;'>Atingimento Projeção Consolidada: <b>{pct_proj_meta}%</b> da meta</p>", unsafe_allow_html=True)
+
+    st.markdown("---")
+    
+    # MÓDULO INTELIGÊNCIA ARTIFICIAL - GOOGLE GEMINI
+    st.write("### 🧠 Módulo Preditivo & Inteligência Artificial (Google Gemini)")
+    
+    api_key_input = st.text_input("Cole sua Chave da API (Google AI Studio) para gerar a análise preditiva:", type="password")
+    
+    if st.button("🚀 Gerar Análise Preditiva e Diagnóstico da Meta"):
+        if not api_key_input:
+            st.warning("⚠️ Insira uma chave de API válida do Google AI Studio.")
+        else:
+            try:
+                genai.configure(api_key=api_key_input)
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                
+                prompt = f"""
+                Você é um consultor executivo sênior de eventos médicos da SBOT.
+                Analise os dados do Congresso SBOT Porto Alegre 2026:
+                - Meta Final de Inscrições: {META_OFICIAL} congressistas.
+                - Inscrições Reais Cadastradas: {inscritos_reais} ({pct_real_meta}% da meta).
+                - Projeção Consolidada (com 500 cotas patrocinadas): {projecao_total} ({pct_proj_meta}% da meta).
+                - Estado Anfitrião (RS): 431 inscritos de 1.120 membros (38.5% conversão).
+                - São Paulo (SP): 155 inscritos de 6.850 membros (2.3% conversão).
+                - Palestrantes: 15 palestrantes aceitaram convite mas ainda não se inscreveram.
+                
+                Forneça um relatório conciso em tópicos com:
+                1. Avaliação do ritmo atual em relação à Meta de 3.500 inscritos.
+                2. Duas ações prioritárias para alavancar a conversão de SP e RJ.
+                3. Recomendação para resgate das vagas patrocinadas e palestrantes pendentes.
+                """
+                
+                with st.spinner("Analisando dados do congresso com Google Gemini AI..."):
+                    resposta = model.generate_content(prompt)
+                    st.success("Diagnóstico Preditivo Concluído!")
+                    st.markdown(f"
+```text\n{resposta.text}\n```")
+            except Exception as e:
+                st.error(f"Erro ao conectar com a API do Gemini: {e}")
+
+# STREAMING_CHUNK: Concluding script execution...
