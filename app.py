@@ -5,7 +5,7 @@ import io
 import google.generativeai as genai
 
 # ----------------------------------------------------
-# CONFIGURAÇÃO DE PÁGINA E DESIGN ULTRA-PREMIUM
+# CONFIGURAÇÃO DE PÁGINA E CSS (VISUAL EXATO DA REFERÊNCIA)
 # ----------------------------------------------------
 st.set_page_config(
     page_title="Dashboard Executivo SBOT 2026",
@@ -13,22 +13,22 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilização CSS personalizada para recriar o visual exato da imagem
+# Estilização CSS inspirada no layout corporativo de referência
 st.markdown("""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         
         html, body, [class*="css"] {
             font-family: 'Inter', sans-serif;
-            background-color: #F4F6F8;
+            background-color: #F8FAFC;
         }
 
-        /* Títulos com barra vertical na esquerda */
+        /* Títulos de Seção com barra vertical azul */
         .section-header {
             color: #0F172A;
-            font-size: 26px;
+            font-size: 22px;
             font-weight: 800;
-            margin-top: 25px;
+            margin-top: 30px;
             margin-bottom: 20px;
             display: flex;
             align-items: center;
@@ -36,29 +36,27 @@ st.markdown("""
         .section-header::before {
             content: "";
             display: inline-block;
-            width: 5px;
-            height: 28px;
+            width: 6px;
+            height: 26px;
             background-color: #0284C7;
             margin-right: 12px;
             border-radius: 4px;
         }
 
-        /* Card Numérico (Top) */
+        /* Estilo dos Cards Numéricos (Kpis) */
         .stat-card {
             background: #FFFFFF;
             border: 1px solid #E2E8F0;
             border-top: 4px solid #0284C7;
-            border-radius: 12px 12px 6px 6px;
-            padding: 20px;
+            border-radius: 10px 10px 0px 0px;
+            padding: 18px 12px;
             text-align: center;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.02);
-            margin-bottom: 12px;
         }
         .stat-card.orange {
             border-top-color: #EA580C;
         }
         .stat-value {
-            font-size: 42px;
+            font-size: 38px;
             font-weight: 800;
             color: #0F172A;
             line-height: 1;
@@ -71,43 +69,36 @@ st.markdown("""
             font-weight: 700;
             color: #64748B;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.5px;
             margin-top: 8px;
         }
 
-        /* Card Info Explicativo (Bottom) */
+        /* Estilo dos Cards Informativos (Abaixo dos Números) */
         .info-card {
-            background: #F8FAFC;
+            background: #FFFFFF;
             border: 1px solid #E2E8F0;
-            border-radius: 12px;
-            padding: 20px;
-            height: 100%;
-            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.02);
+            border-top: none;
+            border-radius: 0px 0px 10px 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            min-height: 120px;
         }
         .info-icon {
-            width: 38px;
-            height: 38px;
-            background-color: #E0F2FE;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-size: 20px;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
         }
         .info-title {
-            font-size: 17px;
+            font-size: 14px;
             font-weight: 700;
             color: #0F172A;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
         .info-desc {
-            font-size: 13px;
-            color: #475569;
-            line-height: 1.5;
+            font-size: 12px;
+            color: #64748B;
+            line-height: 1.4;
         }
 
-        /* Oculta marca d'água padrão do streamlit */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
     </style>
@@ -117,14 +108,14 @@ st.markdown("""
 # SIDEBAR
 # ----------------------------------------------------
 st.sidebar.image("https://sbot.org.br/wp-content/uploads/2021/04/logo-sbot.png", width=180)
-st.sidebar.title("Painel de Controle")
+st.sidebar.title("Painel Executivo")
 GEMINI_API_KEY = st.sidebar.text_input("Google AI Studio API Key", type="password")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # ----------------------------------------------------
-# CARREGAMENTO DE DADOS
+# LEITURA DE DADOS
 # ----------------------------------------------------
 @st.cache_data(ttl=180)
 def carregar_dados_icongresso(url):
@@ -138,7 +129,7 @@ def carregar_dados_icongresso(url):
                     df.columns = [str(col).strip().lower() for col in df.columns]
                     return df
     except Exception as e:
-        st.error(f"Erro ao carregar URL: {e}")
+        st.error(f"Erro na conexão com iCongresso: {e}")
     return None
 
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
@@ -146,7 +137,7 @@ URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
 
 st.title("📊 Dashboard Executivo - Congresso SBOT 2026")
-st.caption("Acompanhamento estratégico em tempo real das inscrições e participantes")
+st.caption("Acompanhamento estratégico consolidado e relatórios em tempo real")
 st.divider()
 
 # ====================================================
@@ -187,7 +178,7 @@ with c1:
         <div class="info-card">
             <div class="info-icon">💳</div>
             <div class="info-title">Inscrições Confirmadas</div>
-            <div class="info-desc">Volume total de congressistas com pagamento confirmado diretamente no portal do evento.</div>
+            <div class="info-desc">Volume total de congressistas com pagamento confirmado no sistema.</div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
@@ -200,7 +191,7 @@ with c2:
         <div class="info-card">
             <div class="info-icon">🎁</div>
             <div class="info-title">Isenções Liberadas</div>
-            <div class="info-desc">Cortesias concedidas e vouchers ativados para convidados especiais e diretoria.</div>
+            <div class="info-desc">Cortesias concedidas e vouchers para convidados e diretoria.</div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
@@ -213,7 +204,7 @@ with c3:
         <div class="info-card">
             <div class="info-icon">📈</div>
             <div class="info-title">Público do Congresso</div>
-            <div class="info-desc">Somatório total de médicos e inscritos cadastrados na atividade principal.</div>
+            <div class="info-desc">Somatório total de inscritos cadastrados na atividade principal.</div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
@@ -246,40 +237,25 @@ p1, p2, p3, p4 = st.columns(4)
 
 with p1:
     st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value">{tot_palestrantes}</div>
-            <div class="stat-label">Total Convocado</div>
-        </div>
+        <div class="stat-card"><div class="stat-value">{tot_palestrantes}</div><div class="stat-label">Total Convocado</div></div>
     ''', unsafe_allow_html=True)
-
 with p2:
     st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value blue">{aceito}</div>
-            <div class="stat-label">Convites Aceitos</div>
-        </div>
+        <div class="stat-card"><div class="stat-value blue">{aceito}</div><div class="stat-label">Convites Aceitos</div></div>
     ''', unsafe_allow_html=True)
-
 with p3:
     st.markdown(f'''
-        <div class="stat-card orange">
-            <div class="stat-value orange">{pendente}</div>
-            <div class="stat-label">Convites Pendentes</div>
-        </div>
+        <div class="stat-card orange"><div class="stat-value orange">{pendente}</div><div class="stat-label">Convites Pendentes</div></div>
     ''', unsafe_allow_html=True)
-
 with p4:
     st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value">{rejeitado}</div>
-            <div class="stat-label">Convites Rejeitados</div>
-        </div>
+        <div class="stat-card"><div class="stat-value">{rejeitado}</div><div class="stat-label">Convites Rejeitados</div></div>
     ''', unsafe_allow_html=True)
 
 st.divider()
 
 # ====================================================
-# SESSÃO 3: INSCRIÇÕES PATROCINADAS
+# SESSÃO 3: INSCRIÇÕES PATROCINADAS (COM REGRAS DE NEGÓCIO)
 # ====================================================
 st.markdown('<div class="section-header">Sessão 3: Inscrições Patrocinadas</div>', unsafe_allow_html=True)
 df_patrocinadas = carregar_dados_icongresso(URL_PATROCINADOS)
@@ -287,78 +263,87 @@ df_patrocinadas = carregar_dados_icongresso(URL_PATROCINADOS)
 GRUPOS_EXCLUIR = [
     "CONVÊNIO - APROVADOS TEOT 2026",
     "CONVÊNIO - EX PRESIDENTES",
-    "CONVÊNIO - REMIDOS SBOT",
     "CONVÊNIO MEMBROS CEC 2026",
+    "CONVÊNIO - REMIDOS SBOT",
+    "PALESTRANTES SBOT 2026",
     "Desconto aplicado de 25% devido a inscrição no SBOTLAB 2026",
     "Desconto aplicado de R$ 115,00 devido pagamento da anuidade via APP.",
     "Desconto aplicado de R$ 230,00 devido pagamento da anuidade via APP.",
-    "Desconto aplicado de R$ 345,00 devido pagamento da anuidade via APP.",
-    "PALESTRANTES SBOT 2026"
+    "Desconto aplicado de R$ 345,00 devido pagamento da anuidade via APP."
 ]
 
-qtd_vendidas, qtd_efetivadas, qtd_nao_efetivadas = 0, 0, 0
+qtd_vagas_convenio, qtd_vagas_confirmadas, qtd_vagas_preencher = 0, 0, 0
 
 if df_patrocinadas is not None and not df_patrocinadas.empty:
-    col_conv = [c for c in df_patrocinadas.columns if 'convenio' in c or 'empresa' in c or 'descri' in c][0]
-    df_patroc_filtrado = df_patrocinadas[~df_patrocinadas[col_conv].astype(str).str.strip().isin(GRUPOS_EXCLUIR)]
+    col_empresa = [c for c in df_patrocinadas.columns if any(k in c for k in ['empresa', 'convenio', 'descri'])][0]
+    
+    # Aplica o Filtro desconsiderando os convênios e promoções institucionais
+    df_patroc_filtrado = df_patrocinadas[~df_patrocinadas[col_empresa].astype(str).str.strip().isin(GRUPOS_EXCLUIR)].copy()
 
-    col_vagas = [c for c in df_patrocinadas.columns if 'vagas (convênio)' in c or 'vagas' in c][0]
-    col_conf = [c for c in df_patrocinadas.columns if 'confirmadas' in c][0]
-    col_preencher = [c for c in df_patrocinadas.columns if 'preencher' in c][0]
+    # Mapeando dinamicamente as 3 colunas solicitadas
+    col_vagas = [c for c in df_patroc_filtrado.columns if 'convenio' in c or 'vagas' in c][0]
+    col_conf = [c for c in df_patroc_filtrado.columns if 'confirmadas' in c][0]
+    col_preencher = [c for c in df_patroc_filtrado.columns if 'preencher' in c][0]
 
-    qtd_vendidas = int(pd.to_numeric(df_patroc_filtrado[col_vagas], errors='coerce').fillna(0).sum())
-    qtd_efetivadas = int(pd.to_numeric(df_patroc_filtrado[col_conf], errors='coerce').fillna(0).sum())
-    qtd_nao_efetivadas = int(pd.to_numeric(df_patroc_filtrado[col_preencher], errors='coerce').fillna(0).sum())
+    qtd_vagas_convenio = int(pd.to_numeric(df_patroc_filtrado[col_vagas], errors='coerce').fillna(0).sum())
+    qtd_vagas_confirmadas = int(pd.to_numeric(df_patroc_filtrado[col_conf], errors='coerce').fillna(0).sum())
+    qtd_vagas_preencher = int(pd.to_numeric(df_patroc_filtrado[col_preencher], errors='coerce').fillna(0).sum())
 
+# Exibição dos Cartões das 3 Colunas de Referência
 m1, m2, m3 = st.columns(3)
 
 with m1:
     st.markdown(f'''
         <div class="stat-card">
-            <div class="stat-value">{qtd_vendidas:,}</div>
-            <div class="stat-label">Cotas Vendidas</div>
+            <div class="stat-value">{qtd_vagas_convenio:,}</div>
+            <div class="stat-label">Qtd. de Vagas (Convênio)</div>
         </div>
         <div class="info-card">
             <div class="info-icon">🤝</div>
-            <div class="info-title">Inscrições Vendidas</div>
-            <div class="info-desc">Volume total de cortesias/vouchers negociados nos pacotes de patrocínio do congresso.</div>
+            <div class="info-title">Total da Cota Comercial</div>
+            <div class="info-desc">Volume total de inscrições vendidas ou contratadas via patrocinadores de mercado.</div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with m2:
     st.markdown(f'''
         <div class="stat-card">
-            <div class="stat-value blue">{qtd_efetivadas:,}</div>
-            <div class="stat-label">Efetivadas (Cadastradas)</div>
+            <div class="stat-value blue">{qtd_vagas_confirmadas:,}</div>
+            <div class="stat-label">Qtd. de Vagas (Confirmadas)</div>
         </div>
         <div class="info-card">
             <div class="info-icon">👤</div>
-            <div class="info-title">Efetivadas</div>
-            <div class="info-desc">Participantes que já utilizaram o código do patrocinador e concluíram seu cadastro.</div>
+            <div class="info-title">Vouchers Utilizados</div>
+            <div class="info-desc">Participantes atrelados a empresas que já finalizaram o cadastro.</div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with m3:
     st.markdown(f'''
         <div class="stat-card orange">
-            <div class="stat-value orange">{qtd_nao_efetivadas:,}</div>
-            <div class="stat-label">Não Efetivadas (Saldo)</div>
+            <div class="stat-value orange">{qtd_vagas_preencher:,}</div>
+            <div class="stat-label">Qtd. de Vagas a Preencher</div>
         </div>
         <div class="info-card">
             <div class="info-icon">🔄</div>
-            <div class="info-title">Não Efetivadas</div>
-            <div class="info-desc">Vouchers pendentes de utilização. Alerta gerado para cobrar o patrocinador antes do prazo final.</div>
+            <div class="info-title">Saldo Disponível</div>
+            <div class="info-desc">Vouchers comercializados aguardando preenchimento das empresas ativas.</div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
+
+# Tabela Detalhada Filtrada (Visão Executiva)
+if df_patrocinadas is not None and not df_patroc_filtrado.empty:
+    with st.expander("📄 Ver Detalhamento por Empresa Patrocinadora (Filtrado)", expanded=False):
+        st.dataframe(df_patroc_filtrado, use_container_width=True)
 
 st.divider()
 
 # ====================================================
-# SESSÃO 4: RESUMO CONSOLIDADOR DOS MÓDULOS
+# SESSÃO 4: RESUMO CONSOLIDADO
 # ====================================================
 st.markdown('<div class="section-header">Sessão 4: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-total_participantes = total_geral_congresso + qtd_efetivadas
+total_participantes = total_geral_congresso + qtd_vagas_confirmadas
 
 resumo_data = {
     "Módulo / Área": [
@@ -368,15 +353,15 @@ resumo_data = {
         "TOTAL CONSOLIDADO EVENTO"
     ],
     "Métrica Principal": [
-        f"{total_geral_congresso} Inscritos Totais",
-        f"{tot_palestrantes} Total Convocados",
-        f"{qtd_vendidas} Vagas Vendidas",
-        f"{total_participantes} Confirmados Gerais"
+        f"{total_geral_congresso:,} Inscritos Totais",
+        f"{tot_palestrantes:,} Convocados",
+        f"{qtd_vagas_convenio:,} Vagas Vendidas",
+        f"{total_participantes:,} Confirmados Gerais"
     ],
     "Status Operacional": [
-        f"{qtd_pagas} Pagas | {qtd_cortesia} Cortesias",
-        f"{aceito} Aceitos ({pendente} Pendentes)",
-        f"{qtd_efetivadas} Efetivadas ({qtd_nao_efetivadas} Saldo Pendente)",
+        f"{qtd_pagas:,} Pagas | {qtd_cortesia:,} Cortesias",
+        f"{aceito:,} Aceitos ({pendente:,} Pendentes)",
+        f"{qtd_vagas_confirmadas:,} Confirmadas ({qtd_vagas_preencher:,} a Preencher)",
         "BASE INTEGRADA EM TEMPO REAL"
     ]
 }
@@ -391,9 +376,10 @@ st.subheader("🤖 Diagnóstico de Inteligência Executiva")
 
 if GEMINI_API_KEY:
     if st.button("✨ Gerar Análise Estratégica"):
-        with st.spinner("Analisando métricas..."):
+        with st.spinner("Analisando métricas do evento..."):
             model = genai.GenerativeModel('gemini-1.5-flash')
-            prompt = f"Gere um diagnóstico curto e executivo para a diretoria SBOT sobre: {total_participantes} participantes confirmados e {qtd_nao_efetivadas} vagas de patrocínio pendentes."
+            prompt = f"Gere um diagnóstico curto e executivo para a diretoria SBOT sobre: {total_participantes} participantes confirmados e {qtd_vagas_preencher} vagas de patrocínio a preencher."
             response = model.generate_content(prompt)
             st.markdown(response.text)
-
+else:
+    st.info("💡 Insira sua API Key do Google AI Studio na barra lateral para liberar os diagnósticos da IA.")
