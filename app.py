@@ -96,8 +96,8 @@ st.markdown("""
             min-height: 125px;
         }
         .info-icon { font-size: 30px; margin-bottom: 6px; }
-        .info-title { font-size: 15px; font-weight: 700; color: #0F172A; margin-bottom: 6px; }
-        .info-desc { font-size: 13px; color: #64748B; line-height: 1.4; }
+        .info-title { font-size: 17px; font-weight: 700; color: #0F172A; margin-bottom: 6px; }
+        .info-desc { font-size: 15px; color: #64748B; line-height: 1.4; }
 
         .progress-bar-bg {
             background-color: #E2E8F0;
