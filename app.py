@@ -486,17 +486,69 @@ st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módu
 palestrantes_pendentes_inscricao = max(0, aceito - palestrantes_inscritos_qtd)
 projecao_confirmados_global = total_geral_congresso + palestrantes_pendentes_inscricao + qtd_vagas_preencher
 
-_, col_centro, _ = st.columns([0.5, 3, 0.5])
+META_INSCRITOS = 3500
+pct_real = round((total_geral_congresso / META_INSCRITOS) * 100, 1)
+pct_proj = round((projecao_confirmados_global / META_INSCRITOS) * 100, 1)
 
-with col_centro:
+col_proj, col_meta = st.columns(2)
+
+with col_proj:
     st.markdown(f'''
-        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.04); margin-bottom: 25px;">
-            <div style="font-size: 12px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 1px;">🎯 CONTAGEM FINAL DE CONFIRMADOS (PROJEÇÃO REAL)</div>
-            <div style="font-size: 48px; font-weight: 800; color: #10B981; margin: 12px 0;">{projecao_confirmados_global:,}</div>
-            <div style="font-size: 13px; font-weight: 700; color: #0F172A; background: #F8FAFC; padding: 12px; border-radius: 8px; border: 1px solid #E2E8F0;">
-                <span style="color:#EA580C;">{total_geral_congresso:,}</span> (Inscritos Diretos) + 
-                <span style="color:#10B981;">{palestrantes_pendentes_inscricao:,}</span> (Palestrantes Aceitos Não Inscritos) + 
-                <span style="color:#0284C7;">{qtd_vagas_preencher:,}</span> (Vagas Patrocinadas a Preencher)
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.04); height: 100%;">
+            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 1px;">🎯 CONTAGEM FINAL DE CONFIRMADOS (PROJEÇÃO REAL)</div>
+            <div style="font-size: 42px; font-weight: 800; color: #10B981; margin: 10px 0;">{projecao_confirmados_global:,}</div>
+            <div style="font-size: 12px; font-weight: 700; color: #0F172A; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <span style="color:#EA580C;">{total_geral_congresso:,}</span> (Inscritos) + 
+                <span style="color:#10B981;">{palestrantes_pendentes_inscricao:,}</span> (Palestrantes) + 
+                <span style="color:#0284C7;">{qtd_vagas_preencher:,}</span> (Vagas Patroc.)
+            </div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+with col_meta:
+    st.markdown(f'''
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #0284C7; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.04); height: 100%;">
+            <div style="font-size: 11px; font-weight: 800; color: #0284C7; text-transform: uppercase; letter-spacing: 1px;">🏁 META DO CONGRESSO 2026</div>
+            <div style="font-size: 42px; font-weight: 800; color: #0F172A; margin: 10px 0;">{META_INSCRITOS:,} <span style="font-size: 18px; color: #64748B;">inscritos</span></div>
+            <div style="font-size: 12px; font-weight: 700; color: #0F172A; background: #F0F9FF; padding: 10px; border-radius: 8px; border: 1px solid #BAE6FD;">
+                Meta global de participantes para Porto Alegre 2026
+            </div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("##### 📊 Acompanhamento de Metas e Progresso (Meta: 3.500 Inscritos)")
+
+m_col1, m_col2 = st.columns(2)
+
+with m_col1:
+    st.markdown(f'''
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 18px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: 700; color: #0F172A; font-size: 14px;">1. Total de Inscrições Reais (Efetivadas) vs. Meta</span>
+                <span style="font-weight: 800; color: #EA580C; font-size: 16px;">{pct_real}%</span>
+            </div>
+            <div style="font-size: 12px; color: #64748B; margin-bottom: 10px;">
+                <b>{total_geral_congresso:,}</b> de <b>{META_INSCRITOS:,}</b> inscritos confirmados diretamente no sistema.
+            </div>
+            <div style="width: 100%; background-color: #E2E8F0; border-radius: 8px; height: 16px; overflow: hidden;">
+                <div style="width: {min(100.0, pct_real)}%; background: linear-gradient(90deg, #EA580C, #F97316); height: 100%; border-radius: 8px; transition: width 0.5s;"></div>
+            </div>
+        </div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+with m_col2:
+    st.markdown(f'''
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 18px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: 700; color: #0F172A; font-size: 14px;">2. Projeção Consolidada (Sessão 5) vs. Meta</span>
+                <span style="font-weight: 800; color: #10B981; font-size: 16px;">{pct_proj}%</span>
+            </div>
+            <div style="font-size: 12px; color: #64748B; margin-bottom: 10px;">
+                <b>{projecao_confirmados_global:,}</b> de <b>{META_INSCRITOS:,}</b> inscritos projetados (Inscritos + Palestrantes + Patrocinados).
+            </div>
+            <div style="width: 100%; background-color: #E2E8F0; border-radius: 8px; height: 16px; overflow: hidden;">
+                <div style="width: {min(100.0, pct_proj)}%; background: linear-gradient(90deg, #10B981, #34D399); height: 100%; border-radius: 8px; transition: width 0.5s;"></div>
             </div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
