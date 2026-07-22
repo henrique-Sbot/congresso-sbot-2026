@@ -335,7 +335,48 @@ with tab2:
 with tab3:
     st.markdown('<div class="section-header">Sessão 3: Monitoramento de Grade & Palestrantes Convidados</div>', unsafe_allow_html=True)
     
+    # Fonte de Dados e Link do Relatório de Palestrantes
+    st.markdown("""
+        <div class="info-box" style="margin-top: 0px; margin-bottom: 20px;">
+            📌 <strong>Fonte de Dados:</strong> Relatório iTarget 1982 <em>(Gestão de Palestrantes & Grade Científica)</em><br>
+            🔗 <strong>Link direto de análise:</strong> <a href="https://icongresso.sbot.itarget.com.br/relatorio/1982" target="_blank" style="color: #0284C7; font-weight: 600;">icongresso.sbot.itarget.com.br/relatorio/1982</a>
+        </div>
+    """, unsafe_allow_html=True)
+
     c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown('<div class="stat-card"><div class="stat-value">150</div><div class="stat-label">Palestrantes Cadastrados</div></div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown('<div class="stat-card accent"><div class="stat-value">110</div><div class="stat-label">Aceitaram Convite</div></div>', unsafe_allow_html=True)
+    with c3:
+        st.markdown('<div class="stat-card" style="border-top-color: #EF4444;"><div class="stat-value" style="color: #EF4444;">15</div><div class="stat-label">Aceitou e Não Inscrito (ALERTA)</div></div>', unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("Mapeamento Individual de Palestrantes (Relatório 1982)")
+    st.dataframe(df_palestrantes, use_container_width=True, hide_index=True)
+
+    st.markdown("""
+        <div class="alert-box">
+            <strong>⚠️ Ação Recomendada:</strong> Disparar e-mail de cobrança automática para os 15 palestrantes que aceitaram o convite da comissão científica, mas ainda não se inscreveram no sistema iTarget.
+        </div>
+    """, unsafe_allow_html=True)
+
+with tab4:
+    st.markdown('<div class="section-header">Sessão 4: Regra dos Patrocinados & Projeção Geral</div>', unsafe_allow_html=True)
+    
+    # Fonte de Dados e Link do Relatório de Patrocinadores
+    st.markdown("""
+        <div class="info-box" style="margin-top: 0px; margin-bottom: 20px;">
+            📌 <strong>Fonte de Dados:</strong> Relatório iTarget 1990 <em>(Módulo de Cotas, Vouchers & Patrocinadores)</em><br>
+            🔗 <strong>Link direto de análise:</strong> <a href="https://icongresso.sbot.itarget.com.br/relatorio/1990" target="_blank" style="color: #0284C7; font-weight: 600;">icongresso.sbot.itarget.com.br/relatorio/1990</a>
+        </div>
+    """, unsafe_allow_html=True)
+
+    cotas_vendidas = 500
+    cotas_efetivadas = 380
+    saldo_pendente = cotas_vendidas - cotas_efetivadas
+    total_projecao = total_diretos + cotas_vendidas
+
     with c1:
         st.markdown('<div class="stat-card"><div class="stat-value">150</div><div class="stat-label">Palestrantes Cadastrados</div></div>', unsafe_allow_html=True)
     with c2:
