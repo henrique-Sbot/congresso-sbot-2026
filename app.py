@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import io
+import re
 import google.generativeai as genai
 
 # ----------------------------------------------------
@@ -123,7 +124,7 @@ def carregar_dados_icongresso(url):
 MAPA_ESTADOS = {
     'ACRE': 'AC', 'ALAGOAS': 'AL', 'AMAPA': 'AP', 'AMAZONAS': 'AM', 'BAHIA': 'BA',
     'CEARA': 'CE', 'DISTRITO FEDERAL': 'DF', 'ESPIRITO SANTO': 'ES', 'GOIAS': 'GO',
-    'MARANHAO': 'MA', 'MATO GROSSO': 'MT', 'MATO GROSSO DO SUL': 'MS', 'MINAS GERAIS': 'MG',
+    'MARANHAO': 'MA', 'MATO GROSSO DO SUL': 'MS', 'MATO GROSSO': 'MT', 'MINAS GERAIS': 'MG',
     'PARA': 'PA', 'PARAIBA': 'PB', 'PARANA': 'PR', 'PERNAMBUCO': 'PE', 'PIAUI': 'PI',
     'RIO DE JANEIRO': 'RJ', 'RIO GRANDE DO NORTE': 'RN', 'RIO GRANDE DO SUL': 'RS',
     'RONDONIA': 'RO', 'RORAIMA': 'RR', 'SANTA CATARINA': 'SC', 'SAO PAULO': 'SP',
@@ -132,12 +133,53 @@ MAPA_ESTADOS = {
 
 def normalizar_uf(texto):
     txt = str(texto).strip().upper()
-    if len(txt) == 2:
+    if txt in MAPA_ESTADOS.values():
         return txt
     for nome, sigla in MAPA_ESTADOS.items():
         if nome in txt:
             return sigla
     return None
+
+def extrair_dados_geograficos(df, nome_valor):
+    """
+    Função resiliente para extrair UF e o valor numérico correspondente
+    mesmo que a tabela venha sem cabeçalhos padrões do pandas.
+    """
+    registros = []
+    if df is None or df.empty:
+        return pd.DataFrame(columns=['UF', nome_valor])
+
+    for _, row in df.iterrows():
+        uf_encontrada = None
+        valor_encontrado = 0
+        
+        # Procura a UF na linha
+        for cell in row.values:
+            uf_test = normalizar_uf(cell)
+            if uf_test:
+                uf_encontrada = uf_test
+                break
+        
+        if uf_encontrada:
+            # Procura números inteiros/decimais válidos na linha (pegando o último valor numérico)
+            for cell in reversed(row.values):
+                val_str = str(cell).replace('.', '').replace(',', '.').strip()
+                if val_str.isdigit():
+                    valor_encontrado = int(val_str)
+                    break
+                else:
+                    # Tenta extrair qualquer dígito
+                    nums = re.findall(r'\d+', val_str)
+                    if nums:
+                        valor_encontrado = int(nums[-1])
+                        break
+            
+            registros.append({'UF': uf_encontrada, nome_valor: valor_encontrado})
+
+    df_res = pd.DataFrame(registros)
+    if not df_res.empty:
+        df_res = df_res.groupby('UF')[nome_valor].sum().reset_index()
+    return df_res
 
 # URLs do Sistema
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
@@ -319,26 +361,11 @@ ESTADOS_DESTAQUE = ["RS", "SC", "PR", "SP", "RJ"]
 
 if df_membros_raw is not None and df_inscritos_raw is not None:
     try:
-        # Parsing dinâmico de colunas para evitar incompatibilidade
-        col_uf_m = df_membros_raw.columns[0]
-        col_qtd_m = df_membros_raw.columns[1] if len(df_membros_raw.columns) > 1 else df_membros_raw.columns[-1]
+        # Extração ultra-resistente de membros e inscritos por estado
+        df_m = extrair_dados_geograficos(df_membros_raw, 'Membros')
+        df_i = extrair_dados_geograficos(df_inscritos_raw, 'Inscritos')
 
-        df_m = df_membros_raw[[col_uf_m, col_qtd_m]].copy()
-        df_m.columns = ['UF_Raw', 'Membros']
-        df_m['UF'] = df_m['UF_Raw'].apply(normalizar_uf)
-        df_m['Membros'] = pd.to_numeric(df_m['Membros'], errors='coerce').fillna(0)
-        df_m = df_m.dropna(subset=['UF']).groupby('UF')['Membros'].sum().reset_index()
-
-        col_uf_i = df_inscritos_raw.columns[0]
-        col_qtd_i = df_inscritos_raw.columns[1] if len(df_inscritos_raw.columns) > 1 else df_inscritos_raw.columns[-1]
-
-        df_i = df_inscritos_raw[[col_uf_i, col_qtd_i]].copy()
-        df_i.columns = ['UF_Raw', 'Inscritos']
-        df_i['UF'] = df_i['UF_Raw'].apply(normalizar_uf)
-        df_i['Inscritos'] = pd.to_numeric(df_i['Inscritos'], errors='coerce').fillna(0)
-        df_i = df_i.dropna(subset=['UF']).groupby('UF')['Inscritos'].sum().reset_index()
-
-        # Unificação e cálculo de % de inscritos sobre a base
+        # Consolidação Geral por Estado
         df_geo = pd.merge(df_m, df_i, on='UF', how='outer').fillna(0)
         df_geo['PctInscritos'] = (df_geo['Inscritos'] / df_geo['Membros'] * 100).round(1)
         df_geo['PctInscritos'] = df_geo['PctInscritos'].replace([float('inf'), float('-inf')], 0).fillna(0)
@@ -380,7 +407,7 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
             )
 
     except Exception as e:
-        st.error(f"Erro ao processar dados de estado: {e}")
+        st.error(f"Erro ao processar dados geográficos: {e}")
 
 st.divider()
 
