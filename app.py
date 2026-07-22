@@ -14,6 +14,7 @@ st.set_page_config(
     layout="wide"
 )
 
+# Estilização CSS personalizada
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -186,7 +187,7 @@ st.caption("Acompanhamento estratégico em tempo real, penetração por regional
 st.divider()
 
 # ====================================================
-# CARREGAMENTO PRÉVIO DE PALESTRANTES INSCRITOS (RELID 1980)
+# CARREGAMENTO DE PALESTRANTES INSCRITOS (RELID 1980)
 # ====================================================
 df_palestrantes_inscritos_raw = carregar_dados_icongresso(URL_PALESTRANTES_INSCRITOS)
 palestrantes_inscritos_qtd = 0
@@ -227,7 +228,7 @@ if df_atividade is not None and not df_atividade.empty:
         qtd_vouchers = extrair_val(df_congresso_only, 'voucher')
         total_geral_congresso = extrair_val(df_congresso_only, 'qtd_total')
 
-c1, c2, c3, c4, c5 = st.columns(5)
+c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     st.markdown(f'''
@@ -249,14 +250,11 @@ with c3:
 
 with c4:
     st.markdown(f'''
-        <div class="stat-card purple"><div class="stat-value purple">{palestrantes_inscritos_qtd:,}</div><div class="stat-label">Palestrantes Inscritos</div></div>
-        <div class="info-card"><div class="info-icon">🎤</div><div class="info-title">Docentes Confirmados</div><div class="info-desc">Palestrantes com inscrição confirmada no sistema.</div></div>
-    '''.replace(",", "."), unsafe_allow_html=True)
-
-with c5:
-    st.markdown(f'''
         <div class="stat-card orange"><div class="stat-value orange">{total_geral_congresso:,}</div><div class="stat-label">Total Geral (Congresso)</div></div>
-        <div class="info-card"><div class="info-icon">📈</div><div class="info-title">Público Ativo</div><div class="info-desc">Somatório total de inscritos na atividade do congresso.</div></div>
+        <div class="info-card">
+            <div class="info-title"><b>{palestrantes_inscritos_qtd}</b> Palestrantes Inscritos</div>
+            <div class="info-desc">Docentes com convite aceito que já concluíram o processo de inscrição.</div>
+        </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
 st.divider()
@@ -434,24 +432,27 @@ st.divider()
 # ====================================================
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-# Cálculo ajustado conforme solicitado:
-# Total = Inscritos Gerais + Palestrantes Aceitos - Palestrantes Aceitos Inscritos + Vagas Patrocinadas a Preencher
-projecao_confirmados_global = total_geral_congresso + (aceito - palestrantes_inscritos_qtd) + qtd_vagas_preencher
+# Cálculo com a regra exata solicitada:
+# Contagem Final = Total de Inscritos + Palestrantes Aceitos - Palestrantes Inscritos + Vagas Patrocinadas (a Preencher)
+projecao_confirmados_global = total_geral_congresso + aceito - palestrantes_inscritos_qtd + qtd_vagas_preencher
 
-_, col_centro, _ = st.columns([1, 2, 1])
+_, col_centro, _ = st.columns([1, 2.5, 1])
 
 with col_centro:
     st.markdown(f'''
         <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 22px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.03); margin-bottom: 25px;">
-            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 CONTAGEM FINAL PROJETADA DE CONFIRMADOS</div>
-            <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin-top: 4px;">Inscritos Totais + (Palestrantes Aceitos − Inscritos) + Vagas a Preencher</div>
-            <div style="font-size: 42px; font-weight: 800; color: #10B981; margin: 8px 0;">{projecao_confirmados_global:,}</div>
-            <div style="font-size: 12px; color: #64748B;">
-                <b>Inscritos Gerais:</b> {total_geral_congresso:,} | <b>Palestrantes Aceitos Não-Inscritos:</b> {aceito - palestrantes_inscritos_qtd:,} | <b>Saldo de Vagas Patrocinadas:</b> {qtd_vagas_preencher:,}
+            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 CONTAGEM FINAL DE CONFIRMADOS</div>
+            <div style="font-size: 44px; font-weight: 800; color: #10B981; margin: 10px 0;">{projecao_confirmados_global:,}</div>
+            <div style="font-size: 13px; font-weight: 700; color: #0F172A; background: #F1F5F9; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <span style="color:#EA580C;">{total_geral_congresso:,}</span> (Inscritos Totais) + 
+                <span style="color:#10B981;">{aceito:,}</span> (Palestrantes Aceitos) − 
+                <span style="color:#8B5CF6;">{palestrantes_inscritos_qtd:,}</span> (Palestrantes Inscritos) + 
+                <span style="color:#0284C7;">{qtd_vagas_preencher:,}</span> (Vagas a Preencher)
             </div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
+# Tabela formatada visualmente
 resumo_data = {
     "Módulo / Área": [
         "1. Inscrições Gerais", 
@@ -469,11 +470,16 @@ resumo_data = {
         f"{qtd_pagas:,} Pagas | {qtd_cortesia:,} Cortesias | {qtd_vouchers:,} Vouchers",
         f"{tot_palestrantes:,} Convocados ({pendente:,} Pendentes / {rejeitado:,} Rejeitados)",
         f"{qtd_vagas_convenio:,} Total Vagas Vendidas ({qtd_vagas_confirmadas:,} Utilizadas)",
-        "FÓRMULA AJUSTADA COM DEDUÇÃO DE DUPLICIDADE"
+        "FÓRMULA AJUSTADA INTEGRADA EM TEMPO REAL"
     ]
 }
 
-st.table(pd.DataFrame(resumo_data))
+df_resumo_display = pd.DataFrame(resumo_data)
+st.dataframe(
+    df_resumo_display, 
+    use_container_width=True, 
+    hide_index=True
+)
 
 # ====================================================
 # AGENTE IA
