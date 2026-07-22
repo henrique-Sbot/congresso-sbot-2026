@@ -528,11 +528,11 @@ with tab5:
         """, unsafe_allow_html=True)
 
     st.markdown("### Progresso Visual da Meta")
-    st.write(**Inscrições Diretas Efetivadas ({progresso_real:.1f}%)**)
-    st.progress(min(progresso_real / 100, 1.0))
+    st.write(f"**Inscrições Diretas Efetivadas ({progresso_real:.1f}%)**")
+    st.progress(min(progresso_real / 100.0, 1.0))
     
-    st.write(**Projeção Consolidada com Patrocinadores ({progresso_consolidado:.1f}%)**)
-    st.progress(min(progresso_consolidado / 100, 1.0))
+    st.write(f"**Projeção Consolidada com Patrocinadores ({progresso_consolidado:.1f}%)**")
+    st.progress(min(progresso_consolidado / 100.0, 1.0))
     
     st.markdown("---")
     st.subheader("🤖 Diagnóstico Executivo de Inteligência Preditiva")
