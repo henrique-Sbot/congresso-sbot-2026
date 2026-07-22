@@ -106,9 +106,9 @@ st.markdown("""
             min-height: 110px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
-        .info-icon { font-size: 18px; margin-bottom: 4px; }
-        .info-title { font-size: 13px; font-weight: 700; color: #0F172A; margin-bottom: 4px; }
-        .info-desc { font-size: 12px; color: #64748B; line-height: 1.4; }
+        .info-icon { font-size: 30px; margin-bottom: 4px; }
+        .info-title { font-size: 15px; font-weight: 700; color: #0F172A; margin-bottom: 4px; }
+        .info-desc { font-size: 13px; color: #64748B; line-height: 1.4; }
 
         .ai-box {
             background: #F0F9FF;
