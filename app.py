@@ -302,7 +302,6 @@ ESTADOS_DESTAQUE = ["RS", "SC", "PR", "SP", "RJ"]
 
 if df_membros is not None and df_inscritos_uf is not None:
     try:
-        # Padronização de Colunas
         col_uf_m = next((c for c in df_membros.columns if any(k in c for k in ['uf', 'estado', 'sigla'])), df_membros.columns[0])
         col_qtd_m = next((c for c in df_membros.columns if any(k in c for k in ['total', 'qtd', 'quantidade'])), df_membros.columns[-1])
 
@@ -321,16 +320,17 @@ if df_membros is not None and df_inscritos_uf is not None:
 
         # Merge dos Dados
         df_geo = pd.merge(df_m, df_i, on='UF', how='outer').fillna(0)
-        df_geo = df_geo[df_geo['UF'].str.len() == 2] # Apenas siglas válidas de UF
+        df_geo = df_geo[df_geo['UF'].str.len() == 2] # Apenas siglas válidas
         
-        df_geo['Penetracao_%'] = (df_geo['Inscritos'] / df_geo['Membros'] * 100).round(1)
-        df_geo['Penetracao_%'] = df_geo['Penetracao_%'].replace([float('inf'), float('-inf')], 0).fillna(0)
+        # Nome de coluna limpo sem símbolos para evitar bug do itertuples
+        df_geo['Penetracao'] = (df_geo['Inscritos'] / df_geo['Membros'] * 100).round(1)
+        df_geo['Penetracao'] = df_geo['Penetracao'].replace([float('inf'), float('-inf')], 0).fillna(0)
 
         # Filtro de Destaques
         df_destaque = df_geo[df_geo['UF'].isin(ESTADOS_DESTAQUE)].copy()
         df_destaque = df_destaque.sort_values(by='Inscritos', ascending=False)
 
-        # Cards do Top Destaques
+        # Cards dos Destaques
         st.markdown("##### 📍 Destaque Regionais Estratégicas (RS, SC, PR, SP, RJ)")
         cols_dest = st.columns(len(ESTADOS_DESTAQUE))
         for idx, row in enumerate(df_destaque.itertuples()):
@@ -338,9 +338,9 @@ if df_membros is not None and df_inscritos_uf is not None:
                 st.markdown(f'''
                     <div class="stat-card purple">
                         <div class="stat-value purple">{row.UF}</div>
-                        <div class="stat-label">{row.Inscritos:,} Inscritos</div>
+                        <div class="stat-label">{int(row.Inscritos):,} Inscritos</div>
                         <div style="font-size: 11px; color: #64748B; margin-top: 4px;">
-                            Base: {row.Membros:,} | <b>{row.Penetracao_}%</b> da regional
+                            Base: {int(row.Membros):,} | <b>{row.Penetracao}%</b> da regional
                         </div>
                     </div>
                 '''.replace(",", "."), unsafe_allow_html=True)
@@ -369,10 +369,10 @@ if df_membros is not None and df_inscritos_uf is not None:
 
         with g2:
             fig_pen = px.bar(
-                df_geo.sort_values(by='Penetracao_%', ascending=False).head(12),
+                df_geo.sort_values(by='Penetracao', ascending=False).head(12),
                 x='UF',
-                y='Penetracao_%',
-                text='Penetracao_%',
+                y='Penetracao',
+                text='Penetracao',
                 title="Top 12 Taxa de Penetração por Estado (% Membros Inscritos)",
                 color_discrete_sequence=['#10B981']
             )
@@ -388,7 +388,7 @@ if df_membros is not None and df_inscritos_uf is not None:
         with st.expander("📄 Ver Tabela Completa de Comparativo por Estado (Todos)", expanded=False):
             st.dataframe(
                 df_geo.sort_values(by='Inscritos', ascending=False).rename(
-                    columns={'UF': 'Estado/UF', 'Membros': 'Membros Totais (iCase)', 'Inscritos': 'Inscritos Congresso (iCongresso)', 'Penetracao_%': '% Penetração'}
+                    columns={'UF': 'Estado/UF', 'Membros': 'Membros Totais (iCase)', 'Inscritos': 'Inscritos Congresso (iCongresso)', 'Penetracao': '% Penetração'}
                 ),
                 use_container_width=True
             )
@@ -403,7 +403,6 @@ st.divider()
 # ====================================================
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-# AJUSTE REQUISITADO: Projeção Global inclui TOTAL DE VAGAS VENDIDAS PATROCINADAS (qtd_vagas_convenio) + Total Congresso
 projecao_confirmados_global = total_geral_congresso + qtd_vagas_convenio
 
 # Card Centralizado e Highlighted no Centro da Tela
