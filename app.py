@@ -14,7 +14,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilização CSS personalizada
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -104,7 +103,7 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # ----------------------------------------------------
-# FUNÇÕES AUXILIARES DE CARREGAMENTO E MAPEAMENTO
+# FUNÇÕES AUXILIARES
 # ----------------------------------------------------
 @st.cache_data(ttl=180)
 def carregar_dados_icongresso(url):
@@ -141,10 +140,6 @@ def normalizar_uf(texto):
     return None
 
 def extrair_dados_geograficos(df, nome_valor):
-    """
-    Função resiliente para extrair UF e o valor numérico correspondente
-    mesmo que a tabela venha sem cabeçalhos padrões do pandas.
-    """
     registros = []
     if df is None or df.empty:
         return pd.DataFrame(columns=['UF', nome_valor])
@@ -153,7 +148,6 @@ def extrair_dados_geograficos(df, nome_valor):
         uf_encontrada = None
         valor_encontrado = 0
         
-        # Procura a UF na linha
         for cell in row.values:
             uf_test = normalizar_uf(cell)
             if uf_test:
@@ -161,14 +155,12 @@ def extrair_dados_geograficos(df, nome_valor):
                 break
         
         if uf_encontrada:
-            # Procura números inteiros/decimais válidos na linha (pegando o último valor numérico)
             for cell in reversed(row.values):
                 val_str = str(cell).replace('.', '').replace(',', '.').strip()
                 if val_str.isdigit():
                     valor_encontrado = int(val_str)
                     break
                 else:
-                    # Tenta extrair qualquer dígito
                     nums = re.findall(r'\d+', val_str)
                     if nums:
                         valor_encontrado = int(nums[-1])
@@ -181,16 +173,31 @@ def extrair_dados_geograficos(df, nome_valor):
         df_res = df_res.groupby('UF')[nome_valor].sum().reset_index()
     return df_res
 
-# URLs do Sistema
+# URLs dos Relatórios
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
 URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_MEMBROS_ESTADO = "https://icase.sbot.itarget.com.br/relatorio/relatorios/index/relid/1979/type/quantitativo/idioma_ext/1/cc_ext/1"
 URL_INSCRITOS_ESTADO = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1968/type/quantitativo/idioma_ext/1/cc_ext/190"
+URL_PALESTRANTES_INSCRITOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1980/type/analitico/idioma_ext/1/cc_ext/190"
 
 st.title("📊 Congresso SBOT | Porto Alegre 2026")
 st.caption("Acompanhamento estratégico em tempo real, penetração por regional e projeções consolidadas")
 st.divider()
+
+# ====================================================
+# CARREGAMENTO PRÉVIO DE PALESTRANTES INSCRITOS (RELID 1980)
+# ====================================================
+df_palestrantes_inscritos_raw = carregar_dados_icongresso(URL_PALESTRANTES_INSCRITOS)
+palestrantes_inscritos_qtd = 0
+
+if df_palestrantes_inscritos_raw is not None and not df_palestrantes_inscritos_raw.empty:
+    col_palestrante = [c for c in df_palestrantes_inscritos_raw.columns if 'palestrante' in c]
+    if col_palestrante:
+        col_p = col_palestrante[0]
+        palestrantes_inscritos_qtd = len(
+            df_palestrantes_inscritos_raw[df_palestrantes_inscritos_raw[col_p].astype(str).str.strip().str.upper() == 'SIM']
+        )
 
 # ====================================================
 # SESSÃO 1: INSCRIÇÕES GERAIS (CONGRESSO)
@@ -220,7 +227,7 @@ if df_atividade is not None and not df_atividade.empty:
         qtd_vouchers = extrair_val(df_congresso_only, 'voucher')
         total_geral_congresso = extrair_val(df_congresso_only, 'qtd_total')
 
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3, c4, c5 = st.columns(5)
 
 with c1:
     st.markdown(f'''
@@ -241,6 +248,12 @@ with c3:
     '''.replace(",", "."), unsafe_allow_html=True)
 
 with c4:
+    st.markdown(f'''
+        <div class="stat-card purple"><div class="stat-value purple">{palestrantes_inscritos_qtd:,}</div><div class="stat-label">Palestrantes Inscritos</div></div>
+        <div class="info-card"><div class="info-icon">🎤</div><div class="info-title">Docentes Confirmados</div><div class="info-desc">Palestrantes com inscrição confirmada no sistema.</div></div>
+    '''.replace(",", "."), unsafe_allow_html=True)
+
+with c5:
     st.markdown(f'''
         <div class="stat-card orange"><div class="stat-value orange">{total_geral_congresso:,}</div><div class="stat-label">Total Geral (Congresso)</div></div>
         <div class="info-card"><div class="info-icon">📈</div><div class="info-title">Público Ativo</div><div class="info-desc">Somatório total de inscritos na atividade do congresso.</div></div>
@@ -275,10 +288,19 @@ p1, p2, p3, p4 = st.columns(4)
 
 with p1:
     st.markdown(f'''<div class="stat-card"><div class="stat-value">{tot_palestrantes}</div><div class="stat-label">Total Convocado</div></div>''', unsafe_allow_html=True)
+
 with p2:
-    st.markdown(f'''<div class="stat-card"><div class="stat-value blue">{aceito}</div><div class="stat-label">Convites Aceitos</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''
+        <div class="stat-card green"><div class="stat-value green">{aceito}</div><div class="stat-label">Convites Aceitos</div></div>
+        <div class="info-card">
+            <div class="info-title"><b>{palestrantes_inscritos_qtd}</b> Palestrantes Inscritos</div>
+            <div class="info-desc">Quantidade de docentes aceitos que já concluíram o processo de inscrição.</div>
+        </div>
+    ''', unsafe_allow_html=True)
+
 with p3:
     st.markdown(f'''<div class="stat-card orange"><div class="stat-value orange">{pendente}</div><div class="stat-label">Convites Pendentes</div></div>''', unsafe_allow_html=True)
+
 with p4:
     st.markdown(f'''<div class="stat-card"><div class="stat-value">{rejeitado}</div><div class="stat-label">Convites Rejeitados</div></div>''', unsafe_allow_html=True)
 
@@ -361,16 +383,13 @@ ESTADOS_DESTAQUE = ["RS", "SC", "PR", "SP", "RJ"]
 
 if df_membros_raw is not None and df_inscritos_raw is not None:
     try:
-        # Extração ultra-resistente de membros e inscritos por estado
         df_m = extrair_dados_geograficos(df_membros_raw, 'Membros')
         df_i = extrair_dados_geograficos(df_inscritos_raw, 'Inscritos')
 
-        # Consolidação Geral por Estado
         df_geo = pd.merge(df_m, df_i, on='UF', how='outer').fillna(0)
         df_geo['PctInscritos'] = (df_geo['Inscritos'] / df_geo['Membros'] * 100).round(1)
         df_geo['PctInscritos'] = df_geo['PctInscritos'].replace([float('inf'), float('-inf')], 0).fillna(0)
 
-        # 1. Cards de Destaque
         st.markdown("##### 📍 Regionais Estratégicas em Destaque")
         cols_dest = st.columns(len(ESTADOS_DESTAQUE))
         
@@ -392,7 +411,6 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
                     </div>
                 '''.replace(",", "."), unsafe_allow_html=True)
 
-        # 2. Tabela no Expander (Escondida por padrão)
         df_tabela_uf = df_geo.sort_values(by='Inscritos', ascending=False).copy()
         df_tabela_uf.columns = ['Estado (UF)', 'Base Membros SBOT (iCase)', 'Inscritos Congresso (iCongresso)', '% Inscritos']
 
@@ -416,18 +434,20 @@ st.divider()
 # ====================================================
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-projecao_confirmados_global = total_geral_congresso + aceito + qtd_vagas_confirmadas
+# Cálculo ajustado conforme solicitado:
+# Total = Inscritos Gerais + Palestrantes Aceitos - Palestrantes Aceitos Inscritos + Vagas Patrocinadas a Preencher
+projecao_confirmados_global = total_geral_congresso + (aceito - palestrantes_inscritos_qtd) + qtd_vagas_preencher
 
 _, col_centro, _ = st.columns([1, 2, 1])
 
 with col_centro:
     st.markdown(f'''
         <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 5px solid #10B981; border-radius: 12px; padding: 22px; text-align: center; box-shadow: 0px 4px 12px rgba(0,0,0,0.03); margin-bottom: 25px;">
-            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 CONTAGEM FINAL DE CONFIRMADOS</div>
-            <div style="font-size: 18px; font-weight: 800; color: #0F172A; margin-top: 4px;">Inscritos + Palestrantes Aceitos + Patrocinados Cadastrados</div>
+            <div style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.8px;">🎯 CONTAGEM FINAL PROJETADA DE CONFIRMADOS</div>
+            <div style="font-size: 16px; font-weight: 800; color: #0F172A; margin-top: 4px;">Inscritos Totais + (Palestrantes Aceitos − Inscritos) + Vagas a Preencher</div>
             <div style="font-size: 42px; font-weight: 800; color: #10B981; margin: 8px 0;">{projecao_confirmados_global:,}</div>
             <div style="font-size: 12px; color: #64748B;">
-                <b>Inscritos Gerais:</b> {total_geral_congresso:,} | <b>Palestrantes Aceitos:</b> {aceito:,} | <b>Patrocinados Cadastrados:</b> {qtd_vagas_confirmadas:,}
+                <b>Inscritos Gerais:</b> {total_geral_congresso:,} | <b>Palestrantes Aceitos Não-Inscritos:</b> {aceito - palestrantes_inscritos_qtd:,} | <b>Saldo de Vagas Patrocinadas:</b> {qtd_vagas_preencher:,}
             </div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
@@ -437,19 +457,19 @@ resumo_data = {
         "1. Inscrições Gerais", 
         "2. Palestrantes Convocados", 
         "3. Inscrições Patrocinadas", 
-        "CONTAGEM FINAL CONSOLIDADA"
+        "CONTAGEM FINAL PROJETADA"
     ],
     "Métrica Principal": [
         f"{total_geral_congresso:,} Inscritos Totais",
-        f"{aceito:,} Palestrantes Aceitos",
-        f"{qtd_vagas_confirmadas:,} Patrocinados Cadastrados",
-        f"{projecao_confirmados_global:,} Público Final Confirmado"
+        f"{aceito:,} Aceitos ({palestrantes_inscritos_qtd:,} Já Inscritos)",
+        f"{qtd_vagas_preencher:,} Vagas Pendentes a Preencher",
+        f"{projecao_confirmados_global:,} Público Final Projetado"
     ],
     "Status Operacional": [
         f"{qtd_pagas:,} Pagas | {qtd_cortesia:,} Cortesias | {qtd_vouchers:,} Vouchers",
         f"{tot_palestrantes:,} Convocados ({pendente:,} Pendentes / {rejeitado:,} Rejeitados)",
-        f"{qtd_vagas_convenio:,} Total Vagas Vendidas ({qtd_vagas_preencher:,} Pendentes)",
-        "BASE INTEGRADA EM TEMPO REAL"
+        f"{qtd_vagas_convenio:,} Total Vagas Vendidas ({qtd_vagas_confirmadas:,} Utilizadas)",
+        "FÓRMULA AJUSTADA COM DEDUÇÃO DE DUPLICIDADE"
     ]
 }
 
@@ -468,12 +488,12 @@ if GEMINI_API_KEY:
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 prompt = f"""
                 Atue como consultor sênior do Congresso SBOT Porto Alegre 2026. Analise:
-                - Contagem Final Consolidada: {projecao_confirmados_global} participantes.
+                - Contagem Final Projetada: {projecao_confirmados_global} participantes.
                 - Inscritos diretos no Congresso: {total_geral_congresso} (Pagas: {qtd_pagas}).
-                - Palestrantes Aceitos: {aceito} de {tot_palestrantes}.
-                - Patrocinados Cadastrados: {qtd_vagas_confirmadas} de {qtd_vagas_convenio} vagas vendidas (Pendente: {qtd_vagas_preencher}).
+                - Palestrantes Aceitos: {aceito} (Inscritos: {palestrantes_inscritos_qtd}).
+                - Vagas Patrocinadas Pendentes: {qtd_vagas_preencher}.
                 
-                Forneça 3 estratégias de engajamento para alavancar os inscritos nas regionais do RS, SC e PR.
+                Forneça 3 estratégias de engajamento para converter os palestrantes pendentes de inscrição e acelerar o preenchimento dos convênios.
                 """
                 response = model.generate_content(prompt)
                 st.markdown(response.text)
