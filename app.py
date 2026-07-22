@@ -11,11 +11,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Estilização CSS personalizada para ocultar cabeçalho, rodapé, barra lateral e menus do Streamlit
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
         
-        /* OCULTAR BARRA SUPERIOR, LOGO DO STREAMLIT, MENU E ICONE DO GIT */
+        /* Ocultar barra superior, logo do Streamlit, menu, ícone do Git e barra lateral */
         header[data-testid="stHeader"],
         [data-testid="stHeader"],
         #MainMenu,
@@ -26,7 +27,7 @@ st.markdown("""
             visibility: hidden !important;
         }
 
-        /* Ajustar espaçamento do topo da página */
+        /* Ajustar espaçamento e largura da página */
         .block-container {
             padding-top: 1.5rem !important;
             padding-bottom: 2rem !important;
@@ -212,7 +213,7 @@ df_inscricoes = carregar_dados_inscricoes()
 df_regionais = carregar_dados_regionais()
 df_palestrantes = carregar_dados_palestrantes()
 
-# Banner principal sem logo, apenas com dados e design limpo
+# Banner principal totalmente limpo
 st.markdown("""
     <div class="header-banner">
         <div>
@@ -412,3 +413,4 @@ st.markdown("---")
 st.markdown(
     "<p style='text-align: center; color: #94A3B8; font-size: 12px;'>Dashboard Executivo SBOT Porto Alegre 2026</p>", 
     unsafe_allow_html=True
+)
