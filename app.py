@@ -319,9 +319,9 @@ ESTADOS_DESTAQUE = ["RS", "SC", "PR", "SP", "RJ"]
 
 if df_membros_raw is not None and df_inscritos_raw is not None:
     try:
-        # Tratamento Membros Totais (iCase)
+        # Parsing dinâmico de colunas para evitar incompatibilidade
         col_uf_m = df_membros_raw.columns[0]
-        col_qtd_m = df_membros_raw.columns[-1]
+        col_qtd_m = df_membros_raw.columns[1] if len(df_membros_raw.columns) > 1 else df_membros_raw.columns[-1]
 
         df_m = df_membros_raw[[col_uf_m, col_qtd_m]].copy()
         df_m.columns = ['UF_Raw', 'Membros']
@@ -329,9 +329,8 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
         df_m['Membros'] = pd.to_numeric(df_m['Membros'], errors='coerce').fillna(0)
         df_m = df_m.dropna(subset=['UF']).groupby('UF')['Membros'].sum().reset_index()
 
-        # Tratamento Inscritos Congresso (iCongresso)
         col_uf_i = df_inscritos_raw.columns[0]
-        col_qtd_i = df_inscritos_raw.columns[-1]
+        col_qtd_i = df_inscritos_raw.columns[1] if len(df_inscritos_raw.columns) > 1 else df_inscritos_raw.columns[-1]
 
         df_i = df_inscritos_raw[[col_uf_i, col_qtd_i]].copy()
         df_i.columns = ['UF_Raw', 'Inscritos']
@@ -339,14 +338,12 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
         df_i['Inscritos'] = pd.to_numeric(df_i['Inscritos'], errors='coerce').fillna(0)
         df_i = df_i.dropna(subset=['UF']).groupby('UF')['Inscritos'].sum().reset_index()
 
-        # Merge dos Dados
+        # Unificação e cálculo de % de inscritos sobre a base
         df_geo = pd.merge(df_m, df_i, on='UF', how='outer').fillna(0)
-        
-        # Cálculo de Penetração
-        df_geo['Penetracao'] = (df_geo['Inscritos'] / df_geo['Membros'] * 100).round(1)
-        df_geo['Penetracao'] = df_geo['Penetracao'].replace([float('inf'), float('-inf')], 0).fillna(0)
+        df_geo['PctInscritos'] = (df_geo['Inscritos'] / df_geo['Membros'] * 100).round(1)
+        df_geo['PctInscritos'] = df_geo['PctInscritos'].replace([float('inf'), float('-inf')], 0).fillna(0)
 
-        # Cards para Estratégia dos Estados de Destaque
+        # 1. Cards de Destaque
         st.markdown("##### 📍 Regionais Estratégicas em Destaque")
         cols_dest = st.columns(len(ESTADOS_DESTAQUE))
         
@@ -354,7 +351,7 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
             d_uf = df_geo[df_geo['UF'] == uf]
             insc = int(d_uf['Inscritos'].values[0]) if not d_uf.empty else 0
             memb = int(d_uf['Membros'].values[0]) if not d_uf.empty else 0
-            pen = d_uf['Penetracao'].values[0] if not d_uf.empty else 0.0
+            pct = d_uf['PctInscritos'].values[0] if not d_uf.empty else 0.0
 
             with cols_dest[idx]:
                 st.markdown(f'''
@@ -363,31 +360,27 @@ if df_membros_raw is not None and df_inscritos_raw is not None:
                         <div class="stat-label">{insc:,} Inscritos</div>
                     </div>
                     <div class="info-card">
-                        <div class="info-title">Penetração: {pen}%</div>
+                        <div class="info-title">Inscritos: {pct}%</div>
                         <div class="info-desc"><b>Base Regional:</b> {memb:,} membros</div>
                     </div>
                 '''.replace(",", "."), unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # Tabela Completa e Formatada (Padrão das Outras Sessões)
-        st.markdown("##### 📄 Tabela Comparativa Consolidada por Estado")
-        
+        # 2. Tabela no Expander (Escondida por padrão)
         df_tabela_uf = df_geo.sort_values(by='Inscritos', ascending=False).copy()
-        df_tabela_uf.columns = ['Estado (UF)', 'Base Membros SBOT (iCase)', 'Inscritos Congresso (iCongresso)', '% Taxa Penetração']
-        
-        st.dataframe(
-            df_tabela_uf.style.format({
-                'Base Membros SBOT (iCase)': '{:,.0f}',
-                'Inscritos Congresso (iCongresso)': '{:,.0f}',
-                '% Taxa Penetração': '{:.1f}%'
-            }),
-            use_container_width=True,
-            height=400
-        )
+        df_tabela_uf.columns = ['Estado (UF)', 'Base Membros SBOT (iCase)', 'Inscritos Congresso (iCongresso)', '% Inscritos']
+
+        with st.expander("📄 Ver Detalhamento por Estado (Todos)", expanded=False):
+            st.dataframe(
+                df_tabela_uf.style.format({
+                    'Base Membros SBOT (iCase)': '{:,.0f}',
+                    'Inscritos Congresso (iCongresso)': '{:,.0f}',
+                    '% Inscritos': '{:.1f}%'
+                }),
+                use_container_width=True
+            )
 
     except Exception as e:
-        st.error(f"Erro ao calcular a análise por estado: {e}")
+        st.error(f"Erro ao processar dados de estado: {e}")
 
 st.divider()
 
@@ -396,10 +389,8 @@ st.divider()
 # ====================================================
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-# CONTAGEM FINAL CONSOLIDADA: Total Inscritos + Palestrantes Aceitos + Patrocinados Confirmados
 projecao_confirmados_global = total_geral_congresso + aceito + qtd_vagas_confirmadas
 
-# Card Centralizado
 _, col_centro, _ = st.columns([1, 2, 1])
 
 with col_centro:
@@ -414,7 +405,6 @@ with col_centro:
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
 
-# Tabela do Resumo Consolidado
 resumo_data = {
     "Módulo / Área": [
         "1. Inscrições Gerais", 
@@ -456,7 +446,7 @@ if GEMINI_API_KEY:
                 - Palestrantes Aceitos: {aceito} de {tot_palestrantes}.
                 - Patrocinados Cadastrados: {qtd_vagas_confirmadas} de {qtd_vagas_convenio} vagas vendidas (Pendente: {qtd_vagas_preencher}).
                 
-                Forneça 3 estratégias de engajamento para alavancar a penetração nas regionais do RS, SC e PR.
+                Forneça 3 estratégias de engajamento para alavancar os inscritos nas regionais do RS, SC e PR.
                 """
                 response = model.generate_content(prompt)
                 st.markdown(response.text)
