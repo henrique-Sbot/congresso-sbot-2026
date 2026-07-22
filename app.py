@@ -481,7 +481,6 @@ st.markdown("---")
 
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-# Cálculo com a regra exata solicitada:
 # Contagem Final = Total de Inscritos + Palestrantes Aceitos não Inscritos + Vagas Patrocinadas (a Preencher)
 palestrantes_pendentes_inscricao = max(0, aceito - palestrantes_inscritos_qtd)
 projecao_confirmados_global = total_geral_congresso + palestrantes_pendentes_inscricao + qtd_vagas_preencher
