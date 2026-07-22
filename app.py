@@ -95,7 +95,7 @@ st.markdown("""
             margin-bottom: 20px;
             min-height: 125px;
         }
-        .info-icon { font-size: 24px; margin-bottom: 6px; }
+        .info-icon { font-size: 30px; margin-bottom: 6px; }
         .info-title { font-size: 15px; font-weight: 700; color: #0F172A; margin-bottom: 6px; }
         .info-desc { font-size: 13px; color: #64748B; line-height: 1.4; }
 
