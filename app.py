@@ -314,11 +314,20 @@ with tab2:
 
     st.subheader("Tabela de Penetração Regional")
     st.dataframe(
-        df_reg_filtrado.style.format({
-            "Membros_SBOT": "{:,}",
-            "Inscritos_Congresso": "{:,}",
-            "Taxa_Conversao": "{:.1f}%"
-        }).background_gradient(subset=["Taxa_Conversao"], cmap="Blues"),
+        df_reg_filtrado,
+        column_config={
+            "Estado": "Estado",
+            "UF": "UF",
+            "Membros_SBOT": st.column_config.NumberColumn("Membros SBOT", format="%d"),
+            "Inscritos_Congresso": st.column_config.NumberColumn("Inscritos no Congresso", format="%d"),
+            "Taxa_Conversao": st.column_config.ProgressColumn(
+                "Taxa de Conversão (%)",
+                format="%.1f%%",
+                min_value=0,
+                max_value=100
+            ),
+            "Destaque": "Destaque"
+        },
         use_container_width=True,
         hide_index=True
     )
