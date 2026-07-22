@@ -492,9 +492,9 @@ st.markdown("---")
 
 st.markdown('<div class="section-header">Sessão 5: Resumo Consolidado dos Módulos</div>', unsafe_allow_html=True)
 
-# Contagem Final = Total de Inscritos + Palestrantes Aceitos não Inscritos + Vagas Patrocinadas (a Preencher)
-palestrantes_pendentes_inscricao = max(0, aceito - palestrantes_inscritos_qtd)
-projecao_confirmados_global = total_geral_congresso + palestrantes_pendentes_inscricao + qtd_vagas_preencher
+# Contagem Final = Total de Inscritos + (Palestrantes Convocados - Palestrantes Inscritos) + Vagas Patrocinadas Não Preenchidas
+palestrantes_nao_inscritos = max(0, tot_palestrantes - palestrantes_inscritos_qtd)
+projecao_confirmados_global = total_geral_congresso + palestrantes_nao_inscritos + qtd_vagas_preencher
 
 META_INSCRITOS = 3500
 pct_real = round((total_geral_congresso / META_INSCRITOS) * 100, 1)
@@ -509,8 +509,8 @@ with col_proj:
             <div style="font-size: 42px; font-weight: 800; color: #10B981; margin: 10px 0;">{projecao_confirmados_global:,}</div>
             <div style="font-size: 12px; font-weight: 700; color: #0F172A; background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
                 <span style="color:#EA580C;">{total_geral_congresso:,}</span> (Inscritos) + 
-                <span style="color:#10B981;">{palestrantes_pendentes_inscricao:,}</span> (Palestrantes) + 
-                <span style="color:#0284C7;">{qtd_vagas_preencher:,}</span> (Vagas Patroc.)
+                <span style="color:#10B981;">{palestrantes_nao_inscritos:,}</span> (Palestrantes Não Inscritos) + 
+                <span style="color:#0284C7;">{qtd_vagas_preencher:,}</span> (Vagas Patroc. Não Preenchidas)
             </div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
@@ -541,8 +541,10 @@ with m_col1:
             <div style="font-size: 12px; color: #64748B; margin-bottom: 10px;">
                 <b>{total_geral_congresso:,}</b> de <b>{META_INSCRITOS:,}</b> inscritos confirmados diretamente no sistema.
             </div>
-            <div style="width: 100%; background-color: #E2E8F0; border-radius: 8px; height: 16px; overflow: hidden;">
-                <div style="width: {min(100.0, pct_real)}%; background: linear-gradient(90deg, #EA580C, #F97316); height: 100%; border-radius: 8px; transition: width 0.5s;"></div>
+            <div style="width: 100%; background-color: #FFEDD5; border-radius: 12px; height: 24px; overflow: hidden; border: 1px solid #FDBA74; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                <div style="width: {max(8.0, min(100.0, pct_real))}%; background: linear-gradient(90deg, #EA580C 0%, #F97316 100%); height: 100%; border-radius: 10px; transition: width 0.5s; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 12px; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
+                    {pct_real}%
+                </div>
             </div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
@@ -555,10 +557,12 @@ with m_col2:
                 <span style="font-weight: 800; color: #10B981; font-size: 16px;">{pct_proj}%</span>
             </div>
             <div style="font-size: 12px; color: #64748B; margin-bottom: 10px;">
-                <b>{projecao_confirmados_global:,}</b> de <b>{META_INSCRITOS:,}</b> inscritos projetados (Inscritos + Palestrantes + Patrocinados).
+                <b>{projecao_confirmados_global:,}</b> de <b>{META_INSCRITOS:,}</b> inscritos projetados (Inscritos + Palestrantes Convocados Não Inscritos + Vagas Patroc. Não Preenchidas).
             </div>
-            <div style="width: 100%; background-color: #E2E8F0; border-radius: 8px; height: 16px; overflow: hidden;">
-                <div style="width: {min(100.0, pct_proj)}%; background: linear-gradient(90deg, #10B981, #34D399); height: 100%; border-radius: 8px; transition: width 0.5s;"></div>
+            <div style="width: 100%; background-color: #D1FAE5; border-radius: 12px; height: 24px; overflow: hidden; border: 1px solid #6EE7B7; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                <div style="width: {max(8.0, min(100.0, pct_proj))}%; background: linear-gradient(90deg, #059669 0%, #10B981 100%); height: 100%; border-radius: 10px; transition: width 0.5s; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 12px; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
+                    {pct_proj}%
+                </div>
             </div>
         </div>
     '''.replace(",", "."), unsafe_allow_html=True)
@@ -574,8 +578,8 @@ if GEMINI_API_KEY:
                 Analise os seguintes dados consolidados e gere um resumo executivo com 3 ações estratégicas prioritárias:
                 
                 - Total Geral de Inscritos Atuais: {total_geral_congresso}
-                - Palestrantes Aceitos: {aceito} (dos quais {palestrantes_inscritos_qtd} já estão inscritos)
-                - Vagas Patrocinadas Vendidas: {qtd_vagas_convenio} ({qtd_vagas_confirmadas} resgatadas, {qtd_vagas_preencher} a preencher)
+                - Palestrantes Convocados: {tot_palestrantes} ({palestrantes_inscritos_qtd} já inscritos, {palestrantes_nao_inscritos} convocados ainda não inscritos)
+                - Vagas Patrocinadas Vendidas: {qtd_vagas_convenio} ({qtd_vagas_confirmadas} resgatadas, {qtd_vagas_preencher} não preenchidas)
                 - Total Projetado Consolidado: {projecao_confirmados_global}
                 - Desempenho Regional: RS lidera com alta conversão, enquanto SP e RJ apresentam potencial reprimido.
                 
