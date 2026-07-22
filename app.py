@@ -214,7 +214,7 @@ def extrair_dados_geograficos(df, nome_valor):
     return df_res
 
 URL_ATIVIDADE = "https://bit.ly/Qtd_inscritos_Atividade"
-URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30501/type/quantitativo/idioma_ext/1/cc_ext/190"
+URL_PALESTRANTES = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/30502/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_PATROCINADOS = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1977/type/quantitativo/idioma_ext/1/cc_ext/190"
 URL_MEMBROS_ESTADO = "https://icase.sbot.itarget.com.br/relatorio/relatorios/index/relid/1979/type/quantitativo/idioma_ext/1/cc_ext/1"
 URL_INSCRITOS_ESTADO = "https://icongresso.sbot.itarget.com.br/relatorio/relatorios/index/relid/1968/type/quantitativo/idioma_ext/1/cc_ext/190"
@@ -308,25 +308,36 @@ df_palestrantes = carregar_dados_icongresso(URL_PALESTRANTES)
 tot_palestrantes, aceito, pendente, rejeitado = 210, 165, 32, 13
 
 if df_palestrantes is not None and not df_palestrantes.empty:
-    col_status_list = [c for c in df_palestrantes.columns if 'status' in c or 'convite' in c]
-    col_qtd_list = [c for c in df_palestrantes.columns if 'quantidade' in c or 'qtd' in c]
+    col_status_list = [c for c in df_palestrantes.columns if any(k in c for k in ['status', 'convite', 'resposta', 'aceit'])]
+    col_qtd_list = [c for c in df_palestrantes.columns if any(k in c for k in ['quantidade', 'qtd', 'total', 'count'])]
+
+    if not col_status_list:
+        col_status_list = [df_palestrantes.columns[0]]
+    if not col_qtd_list and len(df_palestrantes.columns) > 1:
+        col_qtd_list = [df_palestrantes.columns[-1]]
 
     if col_status_list and col_qtd_list:
         col_status = col_status_list[0]
         col_qtd = col_qtd_list[0]
 
-        def pegar_qtd(status_nome):
-            filtro = df_palestrantes[df_palestrantes[col_status].astype(str).str.contains(status_nome, case=False, na=False)]
-            if not filtro.empty:
-                return int(pd.to_numeric(filtro[col_qtd].values[0], errors='coerce'))
-            return 0
+        # Mapeamento e tradução conforme regra definida
+        def traduzir_status_convite(val):
+            txt = str(val).strip().lower()
+            if 'sim' in txt or 'aceit' in txt:
+                return "Aceito"
+            elif 'não' in txt or 'nao' in txt or 'rejeit' in txt or 'recus' in txt:
+                return "Rejeitado"
+            elif '-' in txt or txt == '' or 'pend' in txt:
+                return "Pendente"
+            return str(val)
 
-        aceito_val = pegar_qtd("Aceitou")
-        if aceito_val > 0:
-            aceito = aceito_val
-            pendente = pegar_qtd("Convite Enviado") + pegar_qtd("Cadastrado")
-            rejeitado = pegar_qtd("Rejeitado")
-            tot_palestrantes = aceito + pendente + rejeitado
+        df_palestrantes[col_status] = df_palestrantes[col_status].apply(traduzir_status_convite)
+
+        aceito = int(pd.to_numeric(df_palestrantes[df_palestrantes[col_status] == "Aceito"][col_qtd], errors='coerce').fillna(0).sum())
+        rejeitado = int(pd.to_numeric(df_palestrantes[df_palestrantes[col_status] == "Rejeitado"][col_qtd], errors='coerce').fillna(0).sum())
+        pendente = int(pd.to_numeric(df_palestrantes[df_palestrantes[col_status] == "Pendente"][col_qtd], errors='coerce').fillna(0).sum())
+
+        tot_palestrantes = aceito + pendente + rejeitado
 
 p1, p2, p3, p4 = st.columns(4)
 
